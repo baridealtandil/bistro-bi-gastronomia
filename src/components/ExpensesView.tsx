@@ -3,6 +3,22 @@
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
 import { Plus, Receipt, Calendar, AlertCircle, CheckCircle } from 'lucide-react';
+import { SearchableCombobox } from './SearchableCombobox';
+
+const EXPENSE_CATEGORIES = [
+  'LUZ',
+  'GAS',
+  'AGUA',
+  'ALQUILER',
+  'INTERNET',
+  'SOFTWARE',
+  'MANTENIMIENTO',
+  'MARKETING',
+  'IMPREVISTOS',
+  'SEGUROS',
+  'TASAS / MUNICIPAL',
+  'HONORARIOS'
+];
 
 export const ExpensesView: React.FC = () => {
   const { expenses, addExpense } = useGastronomy();
@@ -110,20 +126,15 @@ export const ExpensesView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Categoría</label>
-                  <select
+                  <SearchableCombobox
+                    label="Categoría"
                     value={category}
-                    onChange={ev => setCategory(ev.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                  >
-                    <option value="LUZ">Luz</option>
-                    <option value="GAS">Gas</option>
-                    <option value="AGUA">Agua</option>
-                    <option value="ALQUILER">Alquiler</option>
-                    <option value="INTERNET">Internet</option>
-                    <option value="SOFTWARE">Software / Pos</option>
-                    <option value="MANTENIMIENTO">Mantenimiento</option>
-                  </select>
+                    onChange={setCategory}
+                    options={EXPENSE_CATEGORIES}
+                    placeholder="Buscar o escribir categoría..."
+                    allowCustom={true}
+                    required={true}
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Tipo de Gasto</label>

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
+import { SearchableCombobox, DEFAULT_GASTRONOMY_CATEGORIES } from './SearchableCombobox';
 import {
   Plus,
   Camera,
@@ -52,10 +53,12 @@ export const SuppliersView: React.FC = () => {
   const [itemDescription, setItemDescription] = useState('');
   const [itemUnitPrice, setItemUnitPrice] = useState('');
 
+  const allCategories = Array.from(new Set([...DEFAULT_GASTRONOMY_CATEGORIES, ...suppliers.map(s => s.category)]));
+
   // Form State Proveedor
   const [supName, setSupName] = useState('');
   const [supCuit, setSupCuit] = useState('');
-  const [supCategory, setSupCategory] = useState('Carnes');
+  const [supCategory, setSupCategory] = useState('Carnes, Achuras & Pollo');
   const [supPhone, setSupPhone] = useState('');
 
   // Form State Pago a Proveedor
@@ -801,19 +804,15 @@ export const SuppliersView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Rubro / Categoría</label>
-                  <select
+                  <SearchableCombobox
+                    label="Rubro / Categoría"
                     value={supCategory}
-                    onChange={e => setSupCategory(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                  >
-                    <option value="Carnes">Carnes</option>
-                    <option value="Verduras">Verduras</option>
-                    <option value="Bebidas">Bebidas</option>
-                    <option value="Lácteos">Lácteos</option>
-                    <option value="Limpieza">Limpieza</option>
-                    <option value="Envasados">Envasados</option>
-                  </select>
+                    onChange={setSupCategory}
+                    options={allCategories}
+                    placeholder="Buscar o escribir rubro..."
+                    allowCustom={true}
+                    required={true}
+                  />
                 </div>
               </div>
 
