@@ -70,6 +70,7 @@ export const ExpensesView: React.FC = () => {
   const [searchProvider, setSearchProvider] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('ALL');
+  const [filterType, setFilterType] = useState('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -91,6 +92,12 @@ export const ExpensesView: React.FC = () => {
   const allPaymentMethods = Array.from(new Set([
     ...DEFAULT_PAYMENT_METHODS,
     ...expenses.map(e => e.paymentMethod).filter(Boolean) as string[]
+  ]));
+
+  // Lista dinámica de tipos de gasto
+  const allTypes = Array.from(new Set([
+    ...DEFAULT_EXPENSE_TYPES,
+    ...expenses.map(e => e.type).filter(Boolean) as string[]
   ]));
 
   const handleAddExpense = (e: React.FormEvent) => {
@@ -122,14 +129,14 @@ export const ExpensesView: React.FC = () => {
       (e.paymentMethod && e.paymentMethod.toLowerCase().includes(searchProvider.toLowerCase()));
 
     const matchesCategory = filterCategory === 'ALL' || e.category === filterCategory;
-
     const matchesMethod = filterPaymentMethod === 'ALL' || e.paymentMethod === filterPaymentMethod;
+    const matchesType = filterType === 'ALL' || e.type === filterType;
 
     const expDate = e.date || e.dueDate || '';
     const matchesStartDate = !startDate || expDate >= startDate;
     const matchesEndDate = !endDate || expDate <= endDate;
 
-    return matchesProvider && matchesCategory && matchesMethod && matchesStartDate && matchesEndDate;
+    return matchesProvider && matchesCategory && matchesMethod && matchesType && matchesStartDate && matchesEndDate;
   });
 
   const totalFilteredAmount = filteredExpenses.reduce((acc, e) => acc + e.amount, 0);
@@ -163,17 +170,17 @@ export const ExpensesView: React.FC = () => {
         </button>
       </div>
 
-      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / ALMANAQUE / CATEGORÍA / MEDIO DE PAGO */}
+      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / ALMANAQUE / CATEGORÍA / TIPO / MEDIO DE PAGO */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
           {/* Buscar por Comercio / Detalle */}
           <div className="relative">
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar por Comercio / Proveedor / Medio</label>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar por Comercio / Proveedor</label>
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-amber-400 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="Ej: Coto, Usina, Transferencia, Efectivo..."
+                placeholder="Ej: Coto, Usina..."
                 value={searchProvider}
                 onChange={e => setSearchProvider(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-500 outline-none font-bold"
@@ -183,7 +190,7 @@ export const ExpensesView: React.FC = () => {
 
           {/* Filtrar por Almanaque Rango de Fechas (Desde - Hasta) */}
           <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">📅 Seleccionar Período (Desde - Hasta)</label>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">📅 Seleccionar Período</label>
             <DateRangePicker
               startDate={startDate}
               endDate={endDate}
@@ -194,13 +201,28 @@ export const ExpensesView: React.FC = () => {
             />
           </div>
 
+          {/* Filtrar por Origen / Medio de Pago */}
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Origen / Medio de Pago</label>
+            <select
+              value={filterPaymentMethod}
+              onChange={e => setFilterPaymentMethod(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-emerald-400 focus:border-emerald-500 outline-none font-bold"
+            >
+              <option value="ALL">Todos los Medios de Pago</option>
+              {allPaymentMethods.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Filtrar por Categoría */}
           <div>
             <label className="text-[10px] text-slate-400 block mb-1 font-medium">Categoría / Rubro</label>
             <select
               value={filterCategory}
               onChange={e => setFilterCategory(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-amber-400 focus:border-amber-500 outline-none font-medium"
             >
               <option value="ALL">Todas las Categorías</option>
               {allCategories.map(cat => (
@@ -209,23 +231,23 @@ export const ExpensesView: React.FC = () => {
             </select>
           </div>
 
-          {/* Filtrar por Medio de Pago */}
+          {/* Filtrar por Tipo de Gasto */}
           <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Filtrar por Origen / Medio de Pago</label>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Tipo de Gasto</label>
             <select
-              value={filterPaymentMethod}
-              onChange={e => setFilterPaymentMethod(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium text-emerald-400"
+              value={filterType}
+              onChange={e => setFilterType(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium"
             >
-              <option value="ALL">Todos los Medios de Pago</option>
-              {allPaymentMethods.map(m => (
-                <option key={m} value={m}>{m}</option>
+              <option value="ALL">Todos los Tipos</option>
+              {allTypes.map(t => (
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
           </div>
         </div>
 
-        {(searchProvider || startDate || endDate || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL') && (
+        {(searchProvider || startDate || endDate || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL' || filterType !== 'ALL') && (
           <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
             <span className="text-[11px] text-amber-400 font-semibold">Filtros activos</span>
             <button
@@ -235,6 +257,7 @@ export const ExpensesView: React.FC = () => {
                 setEndDate('');
                 setFilterCategory('ALL');
                 setFilterPaymentMethod('ALL');
+                setFilterType('ALL');
               }}
               className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 font-medium"
             >
@@ -246,7 +269,7 @@ export const ExpensesView: React.FC = () => {
 
       {/* LISTADO / TABLA DE GASTOS Y SERVICIOS REGISTRADOS */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-950/60">
+        <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               Listado de Gastos de Caja, Servicios y Origen de Pago
@@ -255,8 +278,11 @@ export const ExpensesView: React.FC = () => {
               {filteredExpenses.length} comprobantes / pagos en el periodo seleccionado.
             </p>
           </div>
-          <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5" /> Total Pagado: ${totalFilteredAmount.toLocaleString('es-AR')}
+          
+          <div className="flex items-center gap-3">
+            <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit flex items-center gap-1">
+              <DollarSign className="w-3.5 h-3.5" /> Total Pagado: ${totalFilteredAmount.toLocaleString('es-AR')}
+            </div>
           </div>
         </div>
 
@@ -266,9 +292,51 @@ export const ExpensesView: React.FC = () => {
               <tr>
                 <th className="p-3">Fecha de Pago</th>
                 <th className="p-3">Proveedor / Comercio / Concepto</th>
-                <th className="p-3">Origen / Medio de Pago</th>
-                <th className="p-3">Categoría / Rubro</th>
-                <th className="p-3">Tipo de Gasto</th>
+                <th className="p-3">
+                  <div className="flex flex-col gap-1">
+                    <span>Origen / Medio de Pago</span>
+                    <select
+                      value={filterPaymentMethod}
+                      onChange={e => setFilterPaymentMethod(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 text-emerald-400 text-[10px] rounded-lg px-2 py-1 font-bold focus:outline-none focus:border-emerald-500 normal-case"
+                    >
+                      <option value="ALL">🔍 Todos los Medios</option>
+                      {allPaymentMethods.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                </th>
+                <th className="p-3">
+                  <div className="flex flex-col gap-1">
+                    <span>Categoría / Rubro</span>
+                    <select
+                      value={filterCategory}
+                      onChange={e => setFilterCategory(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 text-amber-400 text-[10px] rounded-lg px-2 py-1 font-bold focus:outline-none focus:border-amber-500 normal-case"
+                    >
+                      <option value="ALL">🔍 Todas las Categorías</option>
+                      {allCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                </th>
+                <th className="p-3">
+                  <div className="flex flex-col gap-1">
+                    <span>Tipo de Gasto</span>
+                    <select
+                      value={filterType}
+                      onChange={e => setFilterType(e.target.value)}
+                      className="bg-slate-900 border border-slate-700 text-slate-200 text-[10px] rounded-lg px-2 py-1 font-bold focus:outline-none focus:border-slate-500 normal-case"
+                    >
+                      <option value="ALL">🔍 Todos los Tipos</option>
+                      {allTypes.map(t => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </div>
+                </th>
                 <th className="p-3">Monto Pagado</th>
                 <th className="p-3">Estado</th>
               </tr>
