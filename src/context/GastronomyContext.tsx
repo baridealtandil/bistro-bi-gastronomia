@@ -71,6 +71,7 @@ const INITIAL_SUPPLIERS: Supplier[] = [
   { id: 'sup4', name: 'BeerTan Cervezas Artesanales', cuit: '30-79812345-6', category: 'Bebidas, Vinos, Licores & Cervezas', phone: '11-9876-5432', email: 'contacto@beertan.com', paymentTermDays: 15, balanceDue: 0 },
   { id: 'sup5', name: 'Panificadora El Sol', cuit: '30-65432198-7', category: 'Panadería, Pastelería & Bollería', phone: '11-4321-8765', email: 'ventas@panificadoraelsol.com', paymentTermDays: 15, balanceDue: 0 },
   { id: 'sup6', name: 'Lácteos & Quesos San Martín', cuit: '30-74561238-9', category: 'Lácteos, Quesos & Cremas', phone: '11-8765-4321', email: 'pedidos@lacteossanmartin.com', paymentTermDays: 15, balanceDue: 0 },
+  { id: 'sup7', name: 'Angelani', cuit: '30-71984210-5', category: 'Carnes, Achuras & Pollo', phone: '11-4455-6677', email: 'ventas@angelani.com.ar', paymentTermDays: 15, balanceDue: 0 },
 ];
 
 const INITIAL_PURCHASES: PurchaseInvoice[] = [
@@ -188,6 +189,30 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (savedSales) setSales(JSON.parse(savedSales));
       const savedRole = localStorage.getItem('gastro_role');
       if (savedRole) setRole(savedRole as UserRole);
+
+      const savedSuppliers = localStorage.getItem('gastro_suppliers');
+      if (savedSuppliers) {
+        const parsed: Supplier[] = JSON.parse(savedSuppliers);
+        const merged = [...parsed];
+        for (const initSup of INITIAL_SUPPLIERS) {
+          if (!merged.some(s => s.name.toLowerCase().trim() === initSup.name.toLowerCase().trim())) {
+            merged.push(initSup);
+          }
+        }
+        setSuppliers(merged);
+      }
+
+      const savedPurchases = localStorage.getItem('gastro_purchases');
+      if (savedPurchases) setPurchases(JSON.parse(savedPurchases));
+
+      const savedPayments = localStorage.getItem('gastro_supplier_payments');
+      if (savedPayments) setSupplierPayments(JSON.parse(savedPayments));
+
+      const savedExpenses = localStorage.getItem('gastro_expenses');
+      if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+
+      const savedChecks = localStorage.getItem('gastro_checks');
+      if (savedChecks) setChecks(JSON.parse(savedChecks));
     } catch (e) {
       console.error(e);
     }
@@ -196,42 +221,63 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const addSale = (saleData: Omit<Sale, 'id' | 'netAmount'>) => {
     const netAmount = saleData.grossAmount - saleData.commissionAmount;
     const newSale: Sale = { ...saleData, id: `s_${Date.now()}`, netAmount };
-    const updated = [newSale, ...sales];
-    setSales(updated);
-    localStorage.setItem('gastro_sales', JSON.stringify(updated));
+    setSales(prev => {
+      const updated = [newSale, ...prev];
+      try { localStorage.setItem('gastro_sales', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
   };
 
   const addSupplier = (supplierData: Omit<Supplier, 'id' | 'balanceDue'>) => {
     const newSup: Supplier = { ...supplierData, id: `sup_${Date.now()}`, balanceDue: 0 };
-    setSuppliers([...suppliers, newSup]);
+    setSuppliers(prev => {
+      const updated = [...prev, newSup];
+      try { localStorage.setItem('gastro_suppliers', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
   };
 
   const addPurchase = (purchaseData: Omit<PurchaseInvoice, 'id'>) => {
     const newPurchase: PurchaseInvoice = { ...purchaseData, id: `p_${Date.now()}`, paidAmount: 0, status: 'PENDIENTE' };
-    setPurchases([newPurchase, ...purchases]);
+    setPurchases(prev => {
+      const updated = [newPurchase, ...prev];
+      try { localStorage.setItem('gastro_purchases', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+
     // Aumentar saldo adeudado del proveedor
-    setSuppliers(prev => prev.map(s => s.id === purchaseData.supplierId ? { ...s, balanceDue: s.balanceDue + purchaseData.amount } : s));
+    setSuppliers(prev => {
+      const updated = prev.map(s => s.id === purchaseData.supplierId ? { ...s, balanceDue: s.balanceDue + purchaseData.amount } : s);
+      try { localStorage.setItem('gastro_suppliers', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
   };
 
   const addSupplierPayment = (paymentData: Omit<SupplierPayment, 'id'>) => {
     const newPayment: SupplierPayment = { ...paymentData, id: `pay_${Date.now()}` };
-    setSupplierPayments([newPayment, ...supplierPayments]);
+    setSupplierPayments(prev => {
+      const updated = [newPayment, ...prev];
+      try { localStorage.setItem('gastro_supplier_payments', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
     // 1. Descontar saldo adeudado del proveedor
-    setSuppliers(prev =>
-      prev.map(s => {
+    setSuppliers(prev => {
+      const updated = prev.map(s => {
         if (s.id === paymentData.supplierId) {
           const newBalance = Math.max(0, s.balanceDue - paymentData.amount);
           return { ...s, balanceDue: newBalance };
         }
         return s;
-      })
-    );
+      });
+      try { localStorage.setItem('gastro_suppliers', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
     // 2. Si se especificó una factura, actualizar su monto pagado y estado
     if (paymentData.invoiceId) {
-      setPurchases(prev =>
-        prev.map(inv => {
+      setPurchases(prev => {
+        const updated = prev.map(inv => {
           if (inv.id === paymentData.invoiceId) {
             const currentPaid = inv.paidAmount || 0;
             const newPaid = currentPaid + paymentData.amount;
@@ -242,8 +288,10 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             return { ...inv, paidAmount: newPaid, status: newStatus };
           }
           return inv;
-        })
-      );
+        });
+        try { localStorage.setItem('gastro_purchases', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
     }
 
     // 3. Si el pago se realizó con Cheque (Propio o Tercero), registrarlo/reflejarlo en el módulo Cheques
@@ -260,18 +308,30 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         status: paymentData.paymentMethod === 'CHEQUE_PROPIO' ? 'PENDIENTE' : 'ENDOSADO',
         notes: `Entregado como pago a proveedor ${paymentData.supplierName} (${paymentData.invoiceNumber || 'Pago general'})`
       };
-      setChecks(prev => [newCheck, ...prev]);
+      setChecks(prev => {
+        const updated = [newCheck, ...prev];
+        try { localStorage.setItem('gastro_checks', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
     }
   };
 
   const addExpense = (expenseData: Omit<Expense, 'id'>) => {
     const newExp: Expense = { ...expenseData, id: `e_${Date.now()}` };
-    setExpenses([newExp, ...expenses]);
+    setExpenses(prev => {
+      const updated = [newExp, ...prev];
+      try { localStorage.setItem('gastro_expenses', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
   };
 
   const addCheck = (checkData: Omit<Check, 'id'>) => {
     const newChk: Check = { ...checkData, id: `c_${Date.now()}` };
-    setChecks(prev => [newChk, ...prev]);
+    setChecks(prev => {
+      const updated = [newChk, ...prev];
+      try { localStorage.setItem('gastro_checks', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
 
     // Verificar si el destinatario/proveedor coincide con un proveedor en la base de datos
     const targetSupplier = suppliers.find(
@@ -280,15 +340,17 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     if (targetSupplier) {
       // 1. Descontar saldo adeudado del proveedor
-      setSuppliers(prev =>
-        prev.map(s => {
+      setSuppliers(prev => {
+        const updated = prev.map(s => {
           if (s.id === targetSupplier.id) {
             const newBalance = Math.max(0, s.balanceDue - checkData.amount);
             return { ...s, balanceDue: newBalance };
           }
           return s;
-        })
-      );
+        });
+        try { localStorage.setItem('gastro_suppliers', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
 
       // 2. Imputar a la factura pendiente más antigua si existe
       const oldestPendingInvoice = purchases.find(
@@ -296,17 +358,19 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       );
 
       if (oldestPendingInvoice) {
-        setPurchases(prev =>
-          prev.map(inv => {
+        setPurchases(prev => {
+          const updated = prev.map(inv => {
             if (inv.id === oldestPendingInvoice.id) {
               const currentPaid = inv.paidAmount || 0;
               const newPaid = currentPaid + checkData.amount;
-              const newStatus = newPaid >= inv.amount ? 'PAGADO' : 'PARCIAL';
+              const newStatus: PurchaseInvoice['status'] = newPaid >= inv.amount ? 'PAGADO' : 'PARCIAL';
               return { ...inv, paidAmount: newPaid, status: newStatus };
             }
             return inv;
-          })
-        );
+          });
+          try { localStorage.setItem('gastro_purchases', JSON.stringify(updated)); } catch (e) {}
+          return updated;
+        });
       }
 
       // 3. Registrar el pago en el historial de pagos a proveedores
@@ -325,7 +389,11 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         notes: `Pago registrado desde la Chequera (Cheque N° ${checkData.number})`
       };
 
-      setSupplierPayments(prev => [newPayment, ...prev]);
+      setSupplierPayments(prev => {
+        const updated = [newPayment, ...prev];
+        try { localStorage.setItem('gastro_supplier_payments', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
     }
   };
 

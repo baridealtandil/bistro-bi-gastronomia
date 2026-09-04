@@ -385,16 +385,28 @@ export const SuppliersView: React.FC = () => {
                       ${sup.balanceDue.toLocaleString('es-AR')}
                     </td>
                     <td className="p-3">
-                      <button
-                        onClick={() => {
-                          setPaySupplierId(sup.id);
-                          setSupplierSearchQuery(sup.name);
-                          setShowPaymentModal(true);
-                        }}
-                        className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 px-3 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1"
-                      >
-                        <CreditCard className="w-3 h-3" /> Registrar Pago
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setPurchaseSupplierName(sup.name);
+                            setSupplierId(sup.id);
+                            setShowPurchaseModal(true);
+                          }}
+                          className="bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 px-2.5 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shrink-0"
+                        >
+                          <Plus className="w-3 h-3" /> Agregar Factura
+                        </button>
+                        <button
+                          onClick={() => {
+                            setPaySupplierId(sup.id);
+                            setSupplierSearchQuery(sup.name);
+                            setShowPaymentModal(true);
+                          }}
+                          className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 px-2.5 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shrink-0"
+                        >
+                          <CreditCard className="w-3 h-3" /> Registrar Pago
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -557,26 +569,15 @@ export const SuppliersView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Fecha Emisión</label>
-                  <input
-                    type="date"
-                    value={date}
-                    onChange={e => setDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Fecha Vencimiento</label>
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={e => setDueDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                  />
-                </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Fecha Emisión</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  required
+                />
               </div>
 
               <div>
