@@ -11,12 +11,13 @@ import {
   Filter,
   Search,
   Building,
-  DollarSign
+  DollarSign,
+  UserCheck
 } from 'lucide-react';
 import { Check as CheckType } from '../types/gastronomy';
 
 export const ChecksView: React.FC = () => {
-  const { checks, addCheck } = useGastronomy();
+  const { checks, addCheck, suppliers } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
 
   // Estados de Filtros Avanzados
@@ -32,6 +33,7 @@ export const ChecksView: React.FC = () => {
   const [number, setNumber] = useState('');
   const [bank, setBank] = useState('Banco Galicia');
   const [issuerOrRecipient, setIssuerOrRecipient] = useState('');
+  const [supplierSearchQueryModal, setSupplierSearchQueryModal] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
@@ -44,7 +46,7 @@ export const ChecksView: React.FC = () => {
       type,
       number,
       bank,
-      issuerOrRecipient,
+      issuerOrRecipient: issuerOrRecipient || supplierSearchQueryModal || 'Sin Especificar',
       issueDate: new Date().toISOString().split('T')[0],
       dueDate: dueDate || new Date().toISOString().split('T')[0],
       amount: parseFloat(amount),
@@ -55,11 +57,18 @@ export const ChecksView: React.FC = () => {
     setNumber('');
     setAmount('');
     setIssuerOrRecipient('');
+    setSupplierSearchQueryModal('');
     setShowModal(false);
   };
 
   // Bancos únicos presentes
   const uniqueBanks = Array.from(new Set(checks.map(c => c.bank)));
+
+  // Buscador de Proveedores en Modal de Carga de Cheque
+  const matchingSuppliersModal = suppliers.filter(s =>
+    s.name.toLowerCase().includes(supplierSearchQueryModal.toLowerCase()) ||
+    s.cuit.includes(supplierSearchQueryModal)
+  );
 
   // Cálculos de Totales por Mes para Cheques Propios (Próximos 90-120 días)
   const calculateMonthlyTotal = (yearMonthPrefix: string) => {
@@ -76,17 +85,12 @@ export const ChecksView: React.FC = () => {
 
   // Lógica de Filtrado de la Tabla
   const filteredChecks = checks.filter(c => {
-    // Filtro por Tipo
     if (filterType !== 'ALL' && c.type !== filterType) return false;
-    // Filtro por Banco
     if (filterBank !== 'ALL' && c.bank !== filterBank) return false;
-    // Filtro por Estado
     if (filterStatus !== 'ALL' && c.status !== filterStatus) return false;
-    // Filtro por Proveedor / Destinatario
     if (searchSupplier && !c.issuerOrRecipient.toLowerCase().includes(searchSupplier.toLowerCase()) && !c.number.toLowerCase().includes(searchSupplier.toLowerCase())) {
       return false;
     }
-    // Filtro por Rango de Fechas
     if (startDate && c.dueDate < startDate) return false;
     if (endDate && c.dueDate > endDate) return false;
 
@@ -106,7 +110,11 @@ export const ChecksView: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            setSupplierSearchQueryModal('');
+            setIssuerOrRecipient('');
+            setShowModal(true);
+          }}
           className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
         >
           <Plus className="w-4 h-4" />
@@ -166,7 +174,6 @@ export const ChecksView: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-          {/* Buscador por Proveedor / Número */}
           <div>
             <label className="text-[10px] text-slate-400 block mb-1">Buscar Proveedor o N°</label>
             <div className="relative">
@@ -181,7 +188,6 @@ export const ChecksView: React.FC = () => {
             </div>
           </div>
 
-          {/* Filtro Banco */}
           <div>
             <label className="text-[10px] text-slate-400 block mb-1">Filtrar por Banco</label>
             <select
@@ -196,7 +202,6 @@ export const ChecksView: React.FC = () => {
             </select>
           </div>
 
-          {/* Filtro Tipo */}
           <div>
             <label className="text-[10px] text-slate-400 block mb-1">Tipo de Cheque</label>
             <select
@@ -210,7 +215,6 @@ export const ChecksView: React.FC = () => {
             </select>
           </div>
 
-          {/* Fecha Desde */}
           <div>
             <label className="text-[10px] text-slate-400 block mb-1">Fecha Venc. Desde</label>
             <input
@@ -221,7 +225,6 @@ export const ChecksView: React.FC = () => {
             />
           </div>
 
-          {/* Fecha Hasta */}
           <div>
             <label className="text-[10px] text-slate-400 block mb-1">Fecha Venc. Hasta</label>
             <input
@@ -233,7 +236,6 @@ export const ChecksView: React.FC = () => {
           </div>
         </div>
 
-        {/* Botón reset filtros si hay alguno aplicado */}
         {(filterBank !== 'ALL' || filterType !== 'ALL' || searchSupplier || startDate || endDate) && (
           <div className="flex items-center justify-end pt-1">
             <button
@@ -322,7 +324,7 @@ export const ChecksView: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Carga Cheque Manual */}
+      {/* MODAL REGISTRAR CHEQUE MANUALMENTE (CON BUSCADOR DE PROVEEDOR) */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
@@ -362,7 +364,7 @@ export const ChecksView: React.FC = () => {
                   <label className="text-xs text-slate-400 block mb-1">Banco</label>
                   <input
                     type="text"
-                    placeholder="Banco Galicia / BBVA"
+                    placeholder="Banco Galicia / ICBC / BBVA"
                     value={bank}
                     onChange={e => setBank(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
@@ -381,17 +383,46 @@ export const ChecksView: React.FC = () => {
                 </div>
               </div>
 
+              {/* BUSCADOR AUTOCOMPLETADO DE PROVEEDOR / CLIENTE */}
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Proveedor / Cliente</label>
-                  <input
-                    type="text"
-                    placeholder="Distribuidora de Carnes"
-                    value={issuerOrRecipient}
-                    onChange={e => setIssuerOrRecipient(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                  />
+                <div className="relative">
+                  <label className="text-xs text-slate-400 block mb-1">Buscar Proveedor / Cliente</label>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-3" />
+                    <input
+                      type="text"
+                      placeholder="Escribe para buscar..."
+                      value={supplierSearchQueryModal}
+                      onChange={e => {
+                        setSupplierSearchQueryModal(e.target.value);
+                        setIssuerOrRecipient(e.target.value);
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-2 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                      required
+                    />
+                  </div>
+
+                  {/* Dropdown de opciones coincidentes */}
+                  {supplierSearchQueryModal && matchingSuppliersModal.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-50 max-h-36 overflow-y-auto divide-y divide-slate-800">
+                      {matchingSuppliersModal.map(s => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => {
+                            setIssuerOrRecipient(s.name);
+                            setSupplierSearchQueryModal(s.name);
+                          }}
+                          className="w-full text-left p-2 text-xs hover:bg-amber-500/20 hover:text-amber-300 text-slate-200 transition-colors flex items-center justify-between"
+                        >
+                          <span className="font-bold">{s.name}</span>
+                          <span className="text-[10px] text-slate-500">{s.category}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Fecha Cobro / Vencimiento</label>
                   <input
@@ -399,9 +430,18 @@ export const ChecksView: React.FC = () => {
                     value={dueDate}
                     onChange={e => setDueDate(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    required
                   />
                 </div>
               </div>
+
+              {/* Indicador visual de la selección */}
+              {issuerOrRecipient && (
+                <div className="bg-slate-950/80 p-2 rounded-xl border border-slate-800/80 text-[11px] flex items-center gap-1.5 text-emerald-400">
+                  <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                  <span>Destinatario asignado: <strong className="text-white">{issuerOrRecipient}</strong></span>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Observaciones</label>
