@@ -6,6 +6,7 @@ import {
   Sale,
   Supplier,
   PurchaseInvoice,
+  SupplierPayment,
   Expense,
   Check,
   Employee,
@@ -23,6 +24,8 @@ interface GastronomyContextType {
   addSupplier: (supplier: Omit<Supplier, 'id' | 'balanceDue'>) => void;
   purchases: PurchaseInvoice[];
   addPurchase: (purchase: Omit<PurchaseInvoice, 'id'>) => void;
+  supplierPayments: SupplierPayment[];
+  addSupplierPayment: (payment: Omit<SupplierPayment, 'id'>) => void;
   expenses: Expense[];
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   checks: Check[];
@@ -47,9 +50,9 @@ interface GastronomyContextType {
   pendingServicesAmount: number;
   totalCoversMonth: number;
   averageTicketPerCover: number;
+  totalSupplierDebt: number;
 }
 
-// Datos iniciales de demostración realistas para un restaurante
 const INITIAL_SALES: Sale[] = [
   { id: 's1', date: '2026-09-01', shift: 'MEDIODIA', covers: 35, channel: 'SALON', paymentMethod: 'EFECTIVO', grossAmount: 450000, commissionAmount: 0, netAmount: 450000 },
   { id: 's2', date: '2026-09-01', shift: 'NOCHE', covers: 42, channel: 'SALON', paymentMethod: 'MERCADO_PAGO', grossAmount: 380000, commissionAmount: 7600, netAmount: 372400 },
@@ -64,13 +67,13 @@ const INITIAL_SALES: Sale[] = [
 const INITIAL_SUPPLIERS: Supplier[] = [
   { id: 'sup1', name: 'Distribuidora Carnes del Sur', cuit: '30-71234567-8', category: 'Carnes', phone: '11-4567-8901', email: 'ventas@carnesdelsur.com', paymentTermDays: 15, balanceDue: 420000 },
   { id: 'sup2', name: 'Verdulería Central BAZ', cuit: '20-31987654-3', category: 'Verduras', phone: '11-5678-1234', email: 'pedidos@verduleriabaz.com', paymentTermDays: 7, balanceDue: 85000 },
-  { id: 'sup3', name: 'Bebidas & Licores Express', cuit: '30-68912345-1', category: 'Bebidas', phone: '11-3456-7890', email: 'proveedores@licoresexpress.com', paymentTermDays: 30, balanceDue: 210000 },
+  { id: 'sup3', name: 'Bebidas & Licores Express', cuit: '30-68912345-1', category: 'Bebidas', phone: '11-3456-7890', email: 'proveedores@licoresexpress.com', paymentTermDays: 30, balanceDue: 0 },
 ];
 
 const INITIAL_PURCHASES: PurchaseInvoice[] = [
   {
     id: 'p1', supplierId: 'sup1', supplierName: 'Distribuidora Carnes del Sur', invoiceNumber: 'FC-A-0001-0004512',
-    date: '2026-09-01', dueDate: '2026-09-16', amount: 420000, status: 'PENDIENTE',
+    date: '2026-09-01', dueDate: '2026-09-16', amount: 420000, paidAmount: 0, status: 'PENDIENTE',
     items: [
       { description: 'Ojo de Bife (kg)', qty: 40, unitPrice: 8500, prevUnitPrice: 7900 },
       { description: 'Lomo (kg)', qty: 10, unitPrice: 8000, prevUnitPrice: 8000 },
@@ -78,7 +81,7 @@ const INITIAL_PURCHASES: PurchaseInvoice[] = [
   },
   {
     id: 'p2', supplierId: 'sup2', supplierName: 'Verdulería Central BAZ', invoiceNumber: 'FC-B-0002-0001290',
-    date: '2026-09-02', dueDate: '2026-09-09', amount: 85000, status: 'PENDIENTE',
+    date: '2026-09-02', dueDate: '2026-09-09', amount: 85000, paidAmount: 0, status: 'PENDIENTE',
     items: [
       { description: 'Papas (Bolsa 20kg)', qty: 5, unitPrice: 9000 },
       { description: 'Verdura Hoja Mix', qty: 10, unitPrice: 4000 },
@@ -86,11 +89,25 @@ const INITIAL_PURCHASES: PurchaseInvoice[] = [
   },
   {
     id: 'p3', supplierId: 'sup3', supplierName: 'Bebidas & Licores Express', invoiceNumber: 'FC-A-0005-0008819',
-    date: '2026-08-25', dueDate: '2026-09-25', amount: 210000, status: 'PAGADO',
+    date: '2026-08-25', dueDate: '2026-09-25', amount: 210000, paidAmount: 210000, status: 'PAGADO',
     items: [
       { description: 'Cerveza Artesanal 500ml (Caja)', qty: 10, unitPrice: 15000 },
       { description: 'Gaseosas 1.5L (Caja)', qty: 4, unitPrice: 15000 },
     ]
+  }
+];
+
+const INITIAL_SUPPLIER_PAYMENTS: SupplierPayment[] = [
+  {
+    id: 'pay1',
+    supplierId: 'sup3',
+    supplierName: 'Bebidas & Licores Express',
+    invoiceId: 'p3',
+    invoiceNumber: 'FC-A-0005-0008819',
+    date: '2026-08-28',
+    paymentMethod: 'TRANSFERENCIA',
+    amount: 210000,
+    notes: 'Pago total de factura de bebidas por transferencia bancaria'
   }
 ];
 
@@ -130,8 +147,8 @@ const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   {
     id: 'm1',
     sender: 'assistant',
-    text: '¡Hola! Soy tu Asistente Financiero y Administrativo IA para el restaurante. Puedo responder preguntas sobre tus ventas, turnos (mediodía/noche), cubiertos por turno, proveedores, facturas, sueldos, cheques y estado de rentabilidad en tiempo real. ¿En qué puedo ayudarte hoy?',
-    timestamp: '18:30'
+    text: '¡Hola! Soy tu Asistente Financiero y Administrativo IA para el restaurante. Puedo responder preguntas sobre tus ventas, pagos a proveedores, cheques, sueldos y estado de rentabilidad en tiempo real. ¿En qué puedo ayudarte hoy?',
+    timestamp: '18:35'
   }
 ];
 
@@ -142,6 +159,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [sales, setSales] = useState<Sale[]>(INITIAL_SALES);
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
   const [purchases, setPurchases] = useState<PurchaseInvoice[]>(INITIAL_PURCHASES);
+  const [supplierPayments, setSupplierPayments] = useState<SupplierPayment[]>(INITIAL_SUPPLIER_PAYMENTS);
   const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [checks, setChecks] = useState<Check[]>(INITIAL_CHECKS);
   const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
@@ -174,8 +192,61 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const addPurchase = (purchaseData: Omit<PurchaseInvoice, 'id'>) => {
-    const newPurchase: PurchaseInvoice = { ...purchaseData, id: `p_${Date.now()}` };
+    const newPurchase: PurchaseInvoice = { ...purchaseData, id: `p_${Date.now()}`, paidAmount: 0, status: 'PENDIENTE' };
     setPurchases([newPurchase, ...purchases]);
+    // Aumentar saldo adeudado del proveedor
+    setSuppliers(prev => prev.map(s => s.id === purchaseData.supplierId ? { ...s, balanceDue: s.balanceDue + purchaseData.amount } : s));
+  };
+
+  const addSupplierPayment = (paymentData: Omit<SupplierPayment, 'id'>) => {
+    const newPayment: SupplierPayment = { ...paymentData, id: `pay_${Date.now()}` };
+    setSupplierPayments([newPayment, ...supplierPayments]);
+
+    // 1. Descontar saldo adeudado del proveedor
+    setSuppliers(prev =>
+      prev.map(s => {
+        if (s.id === paymentData.supplierId) {
+          const newBalance = Math.max(0, s.balanceDue - paymentData.amount);
+          return { ...s, balanceDue: newBalance };
+        }
+        return s;
+      })
+    );
+
+    // 2. Si se especificó una factura, actualizar su monto pagado y estado
+    if (paymentData.invoiceId) {
+      setPurchases(prev =>
+        prev.map(inv => {
+          if (inv.id === paymentData.invoiceId) {
+            const currentPaid = inv.paidAmount || 0;
+            const newPaid = currentPaid + paymentData.amount;
+            let newStatus: PurchaseInvoice['status'] = 'PARCIAL';
+            if (newPaid >= inv.amount) {
+              newStatus = 'PAGADO';
+            }
+            return { ...inv, paidAmount: newPaid, status: newStatus };
+          }
+          return inv;
+        })
+      );
+    }
+
+    // 3. Si el pago se realizó con Cheque Propio, registrarlo automáticamente en la Chequera
+    if (paymentData.paymentMethod === 'CHEQUE_PROPIO') {
+      const newCheck: Check = {
+        id: `c_${Date.now()}`,
+        type: 'PROPIO',
+        number: paymentData.checkNumber || `CHK-${Date.now().toString().slice(-6)}`,
+        bank: paymentData.bank || 'Banco Galicia',
+        issuerOrRecipient: paymentData.supplierName,
+        issueDate: paymentData.date,
+        dueDate: paymentData.dueDate || paymentData.date,
+        amount: paymentData.amount,
+        status: 'PENDIENTE',
+        notes: `Generado desde pago a proveedor (${paymentData.invoiceNumber || 'Pago general'})`
+      };
+      setChecks(prev => [newCheck, ...prev]);
+    }
   };
 
   const addExpense = (expenseData: Omit<Expense, 'id'>) => {
@@ -201,6 +272,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const totalCoversMonth = sales.reduce((acc, s) => acc + (s.covers || 0), 0);
   const averageTicketPerCover = totalCoversMonth > 0 ? totalSalesNetMonth / totalCoversMonth : 0;
+  const totalSupplierDebt = suppliers.reduce((acc, s) => acc + s.balanceDue, 0);
 
   const foodCostPercentage = totalSalesNetMonth > 0 ? (totalPurchasesMonth / totalSalesNetMonth) * 100 : 0;
   const laborCostPercentage = totalSalesNetMonth > 0 ? (totalLaborMonth / totalSalesNetMonth) * 100 : 0;
@@ -245,8 +317,10 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             pendingServicesAmount,
             totalCoversMonth,
             averageTicketPerCover,
+            totalSupplierDebt,
             suppliers,
             purchases,
+            supplierPayments,
             expenses,
             checks,
             employees
@@ -268,7 +342,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const fallbackMsg: ChatMessage = {
         id: `b_${Date.now()}`,
         sender: 'assistant',
-        text: `📊 **Resumen Financiero Automatizado**:\n\n- **Facturación Neta Total**: $${totalSalesNetMonth.toLocaleString('es-AR')}\n- **Cubiertos Totales**: ${totalCoversMonth} (Ticket Promedio/Cubierto: $${Math.round(averageTicketPerCover).toLocaleString('es-AR')})\n- **Prime Cost Actual**: ${primeCostPercentage.toFixed(1)}% (Materia Prima: ${foodCostPercentage.toFixed(1)}% | Mano de Obra: ${laborCostPercentage.toFixed(1)}%)\n- **Cheques Pendientes**: $${pendingChecksAmount7Days.toLocaleString('es-AR')}\n- **Servicios por Pagar**: $${pendingServicesAmount.toLocaleString('es-AR')}\n- **Utilidad Neta Estimada**: $${netProfitEstMonth.toLocaleString('es-AR')}`,
+        text: `📊 **Resumen Financiero Automatizado**:\n\n- **Facturación Neta Total**: $${totalSalesNetMonth.toLocaleString('es-AR')}\n- **Deuda Total con Proveedores**: $${totalSupplierDebt.toLocaleString('es-AR')}\n- **Cubiertos Totales**: ${totalCoversMonth} (Ticket Promedio: $${Math.round(averageTicketPerCover).toLocaleString('es-AR')})\n- **Prime Cost Actual**: ${primeCostPercentage.toFixed(1)}%\n- **Cheques Pendientes**: $${pendingChecksAmount7Days.toLocaleString('es-AR')}\n- **Servicios por Pagar**: $${pendingServicesAmount.toLocaleString('es-AR')}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setChatMessages(prev => [...prev, fallbackMsg]);
@@ -286,6 +360,8 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         addSupplier,
         purchases,
         addPurchase,
+        supplierPayments,
+        addSupplierPayment,
         expenses,
         addExpense,
         checks,
@@ -308,7 +384,8 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         pendingChecksAmount7Days,
         pendingServicesAmount,
         totalCoversMonth,
-        averageTicketPerCover
+        averageTicketPerCover,
+        totalSupplierDebt
       }}
     >
       {children}

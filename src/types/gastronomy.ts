@@ -32,9 +32,25 @@ export interface PurchaseInvoice {
   date: string;
   dueDate: string;
   amount: number;
-  status: 'PENDIENTE' | 'PAGADO' | 'VENCIDO';
+  paidAmount?: number;
+  status: 'PENDIENTE' | 'PARCIAL' | 'PAGADO' | 'VENCIDO';
   items: { description: string; qty: number; unitPrice: number; prevUnitPrice?: number }[];
   fileUrl?: string;
+}
+
+export interface SupplierPayment {
+  id: string;
+  supplierId: string;
+  supplierName: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  date: string;
+  paymentMethod: 'CHEQUE_PROPIO' | 'CHEQUE_TERCERO' | 'EFECTIVO' | 'TRANSFERENCIA';
+  amount: number;
+  checkNumber?: string;
+  bank?: string;
+  dueDate?: string;
+  notes?: string;
 }
 
 export interface Expense {
