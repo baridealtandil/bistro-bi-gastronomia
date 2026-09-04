@@ -261,7 +261,62 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const addCheck = (checkData: Omit<Check, 'id'>) => {
     const newChk: Check = { ...checkData, id: `c_${Date.now()}` };
-    setChecks([newChk, ...checks]);
+    setChecks(prev => [newChk, ...prev]);
+
+    // Verificar si el destinatario/proveedor coincide con un proveedor en la base de datos
+    const targetSupplier = suppliers.find(
+      s => s.name.toLowerCase().trim() === checkData.issuerOrRecipient.toLowerCase().trim()
+    );
+
+    if (targetSupplier) {
+      // 1. Descontar saldo adeudado del proveedor
+      setSuppliers(prev =>
+        prev.map(s => {
+          if (s.id === targetSupplier.id) {
+            const newBalance = Math.max(0, s.balanceDue - checkData.amount);
+            return { ...s, balanceDue: newBalance };
+          }
+          return s;
+        })
+      );
+
+      // 2. Imputar a la factura pendiente más antigua si existe
+      const oldestPendingInvoice = purchases.find(
+        p => p.supplierId === targetSupplier.id && p.status !== 'PAGADO'
+      );
+
+      if (oldestPendingInvoice) {
+        setPurchases(prev =>
+          prev.map(inv => {
+            if (inv.id === oldestPendingInvoice.id) {
+              const currentPaid = inv.paidAmount || 0;
+              const newPaid = currentPaid + checkData.amount;
+              const newStatus = newPaid >= inv.amount ? 'PAGADO' : 'PARCIAL';
+              return { ...inv, paidAmount: newPaid, status: newStatus };
+            }
+            return inv;
+          })
+        );
+      }
+
+      // 3. Registrar el pago en el historial de pagos a proveedores
+      const newPayment: SupplierPayment = {
+        id: `pay_${Date.now()}`,
+        supplierId: targetSupplier.id,
+        supplierName: targetSupplier.name,
+        invoiceId: oldestPendingInvoice?.id,
+        invoiceNumber: oldestPendingInvoice?.invoiceNumber,
+        date: checkData.issueDate || new Date().toISOString().split('T')[0],
+        paymentMethod: checkData.type === 'PROPIO' ? 'CHEQUE_PROPIO' : 'CHEQUE_TERCERO',
+        amount: checkData.amount,
+        checkNumber: checkData.number,
+        bank: checkData.bank,
+        dueDate: checkData.dueDate,
+        notes: `Pago registrado desde la Chequera (Cheque N° ${checkData.number})`
+      };
+
+      setSupplierPayments(prev => [newPayment, ...prev]);
+    }
   };
 
   const addAdvance = (advanceData: Omit<Advance, 'id'>) => {
