@@ -2,14 +2,18 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Plus, Upload, Sun, Moon, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Plus, Upload, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw } from 'lucide-react';
 import { Sale } from '../types/gastronomy';
 
 export const SalesView: React.FC = () => {
-  const { sales, addSale, totalCoversMonth, averageTicketPerCover } = useGastronomy();
+  const { sales, addSale } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
 
-  // Form State
+  // Filtros de Rango de Fechas (Almanaque Desde / Hasta)
+  const [startDate, setStartDate] = useState<string>('2026-09-01');
+  const [endDate, setEndDate] = useState<string>('2026-09-30');
+
+  // Form State para Nueva Venta
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [shift, setShift] = useState<Sale['shift']>('MEDIODIA');
   const [covers, setCovers] = useState<string>('25');
@@ -54,9 +58,19 @@ export const SalesView: React.FC = () => {
     alert('✅ Se importaron cierres de caja de Fudo/MaxiRest con turnos y cubiertos.');
   };
 
-  // Desglose por Turno
-  const totalMediodia = sales.filter(s => s.shift === 'MEDIODIA').reduce((acc, s) => acc + s.netAmount, 0);
-  const totalNoche = sales.filter(s => s.shift === 'NOCHE').reduce((acc, s) => acc + s.netAmount, 0);
+  // Filtrado de Ventas por el Rango de Fechas Seleccionado en el Almanaque
+  const filteredSales = sales.filter(s => {
+    if (startDate && s.date < startDate) return false;
+    if (endDate && s.date > endDate) return false;
+    return true;
+  });
+
+  // CÁLCULO DINÁMICO DE KPIS SEGÚN EL PERÍODO SELECCIONADO EN EL CALENDARIO
+  const periodMediodia = filteredSales.filter(s => s.shift === 'MEDIODIA').reduce((acc, s) => acc + s.netAmount, 0);
+  const periodNoche = filteredSales.filter(s => s.shift === 'NOCHE').reduce((acc, s) => acc + s.netAmount, 0);
+  const periodCovers = filteredSales.reduce((acc, s) => acc + (s.covers || 0), 0);
+  const periodSalesNet = filteredSales.reduce((acc, s) => acc + s.netAmount, 0);
+  const periodAverageTicket = periodCovers > 0 ? periodSalesNet / periodCovers : 0;
 
   return (
     <div className="space-y-6 pb-12">
@@ -67,10 +81,10 @@ export const SalesView: React.FC = () => {
             Ventas por Turno (Mediodía / Noche) y Cubiertos
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Registra los cierres de caja por turno con número de comensales para obtener el Ticket Promedio.
+            Selecciona un período en el almanaque para ver el rendimiento acumulado en las tarjetas.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleSimulateCsvImport}
             className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-700 transition-all"
@@ -88,24 +102,75 @@ export const SalesView: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Cards de Turnos y Cubiertos */}
+      {/* BARRA DE SELECCIÓN DE PERÍODO (ALMANAQUE CALENDARIO DESDE / HASTA) */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div className="text-xs font-bold text-slate-200 flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-amber-400" />
+            Seleccionar Período de Ventas en el Almanaque
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setStartDate('2026-09-01');
+                setEndDate('2026-09-30');
+              }}
+              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-2.5 py-1 rounded-lg border border-slate-700 transition-all"
+            >
+              Este Mes (Septiembre)
+            </button>
+            <button
+              onClick={() => {
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-2.5 py-1 rounded-lg border border-slate-700 transition-all flex items-center gap-1"
+            >
+              <RefreshCw className="w-3 h-3 text-amber-400" /> Ver Todo
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-slate-400 block mb-1 font-medium">🗓️ Fecha Desde (Calendario)</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-300 shadow-inner cursor-pointer"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1 font-medium">🗓️ Fecha Hasta (Calendario)</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-300 shadow-inner cursor-pointer"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* TARJETAS KPI DE RESUMEN QUE SE ACTUALIZAN DINÁMICAMENTE CON EL ALMANAQUE */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>Turno Mediodía</span>
+            <span>Ventas Turno Mediodía</span>
             <Sun className="w-4 h-4 text-amber-400" />
           </div>
-          <div className="text-xl font-black text-white">${totalMediodia.toLocaleString('es-AR')}</div>
-          <div className="text-[10px] text-slate-400">Total acumulado</div>
+          <div className="text-xl font-black text-white">${periodMediodia.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-400">En el período seleccionado</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>Turno Noche</span>
+            <span>Ventas Turno Noche</span>
             <Moon className="w-4 h-4 text-indigo-400" />
           </div>
-          <div className="text-xl font-black text-white">${totalNoche.toLocaleString('es-AR')}</div>
-          <div className="text-[10px] text-slate-400">Total acumulado</div>
+          <div className="text-xl font-black text-white">${periodNoche.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-400">En el período seleccionado</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
@@ -113,8 +178,8 @@ export const SalesView: React.FC = () => {
             <span>Cubiertos Totales</span>
             <Users className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-xl font-black text-white">{totalCoversMonth} pax</div>
-          <div className="text-[10px] text-slate-400">Comensales atendidos</div>
+          <div className="text-xl font-black text-white">{periodCovers} pax</div>
+          <div className="text-[10px] text-slate-400">Comensales en el período</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
@@ -122,16 +187,16 @@ export const SalesView: React.FC = () => {
             <span>Ticket Promedio / Cubierto</span>
             <DollarSign className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="text-xl font-black text-emerald-400">${Math.round(averageTicketPerCover).toLocaleString('es-AR')}</div>
+          <div className="text-xl font-black text-emerald-400">${Math.round(periodAverageTicket).toLocaleString('es-AR')}</div>
           <div className="text-[10px] text-slate-400">Venta neta por comensal</div>
         </div>
       </div>
 
-      {/* Tabla de Ventas */}
+      {/* Tabla de Ventas Filtradas por el Almanaque */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white">Histórico de Ventas por Turno</h3>
-          <span className="text-xs text-slate-400">{sales.length} cierres registrados</span>
+          <h3 className="text-sm font-bold text-white">Histórico de Ventas del Período Seleccionado</h3>
+          <span className="text-xs text-slate-400">{filteredSales.length} cierres listados</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -149,37 +214,45 @@ export const SalesView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {sales.map(s => {
-                const ticketPerCover = s.covers > 0 ? s.netAmount / s.covers : 0;
-                return (
-                  <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3 font-medium text-white whitespace-nowrap">{s.date}</td>
-                    <td className="p-3">
-                      {s.shift === 'MEDIODIA' ? (
-                        <span className="flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
-                          <Sun className="w-3 h-3" /> MEDIODÍA
+              {filteredSales.length > 0 ? (
+                filteredSales.map(s => {
+                  const ticketPerCover = s.covers > 0 ? s.netAmount / s.covers : 0;
+                  return (
+                    <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="p-3 font-medium text-white whitespace-nowrap">{s.date}</td>
+                      <td className="p-3">
+                        {s.shift === 'MEDIODIA' ? (
+                          <span className="flex items-center gap-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
+                            <Sun className="w-3 h-3" /> MEDIODÍA
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
+                            <Moon className="w-3 h-3" /> NOCHE
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 text-white font-bold">{s.covers || 0} pax</td>
+                      <td className="p-3">
+                        <span className="bg-slate-800 border border-slate-700 text-slate-300 px-2 py-0.5 rounded text-[10px]">
+                          {s.channel}
                         </span>
-                      ) : (
-                        <span className="flex items-center gap-1 bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
-                          <Moon className="w-3 h-3" /> NOCHE
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3 text-white font-bold">{s.covers || 0} pax</td>
-                    <td className="p-3">
-                      <span className="bg-slate-800 border border-slate-700 text-slate-300 px-2 py-0.5 rounded text-[10px]">
-                        {s.channel}
-                      </span>
-                    </td>
-                    <td className="p-3 text-slate-400">{s.paymentMethod}</td>
-                    <td className="p-3 text-emerald-400 font-bold">${s.netAmount.toLocaleString('es-AR')}</td>
-                    <td className="p-3 text-slate-300 font-medium">
-                      {ticketPerCover > 0 ? `$${Math.round(ticketPerCover).toLocaleString('es-AR')}` : '-'}
-                    </td>
-                    <td className="p-3 text-slate-500 max-w-xs truncate">{s.notes || '-'}</td>
-                  </tr>
-                );
-              })}
+                      </td>
+                      <td className="p-3 text-slate-400">{s.paymentMethod}</td>
+                      <td className="p-3 text-emerald-400 font-bold">${s.netAmount.toLocaleString('es-AR')}</td>
+                      <td className="p-3 text-slate-300 font-medium">
+                        {ticketPerCover > 0 ? `$${Math.round(ticketPerCover).toLocaleString('es-AR')}` : '-'}
+                      </td>
+                      <td className="p-3 text-slate-500 max-w-xs truncate">{s.notes || '-'}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={8} className="p-6 text-center text-slate-500 italic text-xs">
+                    No hay cierres de ventas registrados en el rango de fechas seleccionado.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
