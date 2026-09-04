@@ -425,9 +425,7 @@ export const SuppliersView: React.FC = () => {
                 <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
                   <tr>
                     <th className="p-3">Nombre Comercial</th>
-                    <th className="p-3">CUIT</th>
                     <th className="p-3">Rubro / Categoría</th>
-                    <th className="p-3">Teléfono / Contacto</th>
                     <th className="p-3">Plazo de Pago</th>
                     <th className="p-3">Saldo Pendiente</th>
                     <th className="p-3">Acciones</th>
@@ -438,13 +436,11 @@ export const SuppliersView: React.FC = () => {
                     sortedAndFilteredSuppliers.map(sup => (
                       <tr key={sup.id} className="hover:bg-slate-800/40 transition-colors">
                         <td className="p-3 font-bold text-white text-sm">{sup.name}</td>
-                        <td className="p-3 font-mono text-slate-400">{sup.cuit}</td>
                         <td className="p-3">
                           <span className="bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px] border border-slate-700">
                             {sup.category}
                           </span>
                         </td>
-                        <td className="p-3 text-slate-300">{sup.phone || '-'}</td>
                         <td className="p-3 text-slate-400">{sup.paymentTermDays} días</td>
                         <td className="p-3 font-black text-rose-400 text-sm">
                           ${sup.balanceDue.toLocaleString('es-AR')}
@@ -465,7 +461,7 @@ export const SuppliersView: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="p-6 text-center text-slate-500 italic text-xs">
+                      <td colSpan={5} className="p-6 text-center text-slate-500 italic text-xs">
                         No se encontraron proveedores que coincidan con la búsqueda.
                       </td>
                     </tr>
