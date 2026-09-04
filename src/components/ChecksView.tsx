@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
+import { DateRangePicker } from './DateRangePicker';
 import {
   CheckSquare,
   Plus,
@@ -173,7 +174,7 @@ export const ChecksView: React.FC = () => {
           Filtros de Búsqueda y Rango de Fechas
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs items-end">
           <div>
             <label className="text-[10px] text-slate-400 block mb-1">Buscar Proveedor o N°</label>
             <div className="relative">
@@ -193,7 +194,7 @@ export const ChecksView: React.FC = () => {
             <select
               value={filterBank}
               onChange={e => setFilterBank(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
             >
               <option value="ALL">Todos los Bancos</option>
               {uniqueBanks.map(b => (
@@ -207,7 +208,7 @@ export const ChecksView: React.FC = () => {
             <select
               value={filterType}
               onChange={e => setFilterType(e.target.value as any)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none font-semibold text-amber-400"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-semibold text-amber-400"
             >
               <option value="ALL">Todos los Tipos</option>
               <option value="PROPIO">Propios Emitidos</option>
@@ -216,22 +217,14 @@ export const ChecksView: React.FC = () => {
           </div>
 
           <div>
-            <label className="text-[10px] text-slate-400 block mb-1">Fecha Venc. Desde</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1">Fecha Venc. Hasta</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none"
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">📅 Seleccionar Período (Desde - Hasta)</label>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(s, e) => {
+                setStartDate(s);
+                setEndDate(e);
+              }}
             />
           </div>
         </div>

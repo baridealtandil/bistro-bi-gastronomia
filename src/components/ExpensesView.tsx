@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
 import { Plus, Search, CheckCircle2, DollarSign, X } from 'lucide-react';
 import { SearchableCombobox } from './SearchableCombobox';
+import { DateRangePicker } from './DateRangePicker';
 
 const COMMON_EXPENSE_PROVIDERS = [
   'Supermercado (Coto / Carrefour / Jumbo)',
@@ -57,7 +58,8 @@ export const ExpensesView: React.FC = () => {
   // Buscador y Filtros de la Tabla
   const [searchProvider, setSearchProvider] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
-  const [filterDate, setFilterDate] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Form State Modal Registrar Pago
   const [providerName, setProviderName] = useState('');
@@ -91,7 +93,7 @@ export const ExpensesView: React.FC = () => {
     setShowModal(false);
   };
 
-  // Filtrado de lista
+  // Filtrado de lista con DateRangePicker
   const filteredExpenses = expenses.filter(e => {
     const matchesProvider = searchProvider.trim() === '' ||
       e.description.toLowerCase().includes(searchProvider.toLowerCase()) ||
@@ -100,9 +102,11 @@ export const ExpensesView: React.FC = () => {
 
     const matchesCategory = filterCategory === 'ALL' || e.category === filterCategory;
 
-    const matchesDate = !filterDate || e.date === filterDate || e.dueDate === filterDate;
+    const expDate = e.date || e.dueDate || '';
+    const matchesStartDate = !startDate || expDate >= startDate;
+    const matchesEndDate = !endDate || expDate <= endDate;
 
-    return matchesProvider && matchesCategory && matchesDate;
+    return matchesProvider && matchesCategory && matchesStartDate && matchesEndDate;
   });
 
   const totalFilteredAmount = filteredExpenses.reduce((acc, e) => acc + e.amount, 0);
@@ -135,7 +139,7 @@ export const ExpensesView: React.FC = () => {
         </button>
       </div>
 
-      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / FECHA / CATEGORÍA */}
+      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / ALMANAQUE (DESDE - HASTA) / CATEGORÍA */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Buscar por Comercio / Detalle */}
@@ -153,17 +157,17 @@ export const ExpensesView: React.FC = () => {
             </div>
           </div>
 
-          {/* Filtrar por Fecha de Pago */}
+          {/* Filtrar por Almanaque Rango de Fechas (Desde - Hasta) */}
           <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Filtrar por Fecha de Pago</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={filterDate}
-                onChange={e => setFilterDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-500 outline-none font-medium"
-              />
-            </div>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">📅 Seleccionar Período (Desde - Hasta)</label>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(start, end) => {
+                setStartDate(start);
+                setEndDate(end);
+              }}
+            />
           </div>
 
           {/* Filtrar por Categoría */}
@@ -172,7 +176,7 @@ export const ExpensesView: React.FC = () => {
             <select
               value={filterCategory}
               onChange={e => setFilterCategory(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none font-medium"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium"
             >
               <option value="ALL">Todas las Categorías</option>
               {allCategories.map(cat => (
@@ -182,13 +186,14 @@ export const ExpensesView: React.FC = () => {
           </div>
         </div>
 
-        {(searchProvider || filterDate || filterCategory !== 'ALL') && (
+        {(searchProvider || startDate || endDate || filterCategory !== 'ALL') && (
           <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
             <span className="text-[11px] text-amber-400 font-semibold">Filtros activos</span>
             <button
               onClick={() => {
                 setSearchProvider('');
-                setFilterDate('');
+                setStartDate('');
+                setEndDate('');
                 setFilterCategory('ALL');
               }}
               className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 font-medium"
@@ -207,7 +212,7 @@ export const ExpensesView: React.FC = () => {
               Listado de Gastos de Caja y Servicios Registrados
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              {filteredExpenses.length} comprobantes / gastos en el periodo.
+              {filteredExpenses.length} comprobantes / gastos en el periodo seleccionado.
             </p>
           </div>
           <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit flex items-center gap-1">

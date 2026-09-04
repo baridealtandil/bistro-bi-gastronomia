@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
 import { SearchableCombobox, DEFAULT_GASTRONOMY_CATEGORIES } from './SearchableCombobox';
+import { DateRangePicker } from './DateRangePicker';
 import {
   Plus,
   Camera,
@@ -38,8 +39,10 @@ export const SuppliersView: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isScanningOcr, setIsScanningOcr] = useState(false);
 
-  // Buscador principal de proveedores
+  // Buscador principal de proveedores y Rango de Fechas
   const [supplierListSearch, setSupplierListSearch] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Buscador de proveedores en el modal de pago
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
@@ -96,10 +99,13 @@ export const SuppliersView: React.FC = () => {
   // IDs de proveedores coincidentes con la búsqueda activa
   const matchingSupplierIds = new Set(sortedAndFilteredSuppliers.map(s => s.id));
 
-  // Facturas filtradas según la búsqueda activa (si no hay búsqueda, usa todas)
-  const filteredPurchasesForCards = supplierListSearch.trim() === ''
-    ? purchases
-    : purchases.filter(p => matchingSupplierIds.has(p.supplierId));
+  // Facturas filtradas según la búsqueda activa y Rango de Fechas (Desde - Hasta)
+  const filteredPurchasesForCards = purchases.filter(p => {
+    const matchesSupplier = supplierListSearch.trim() === '' || matchingSupplierIds.has(p.supplierId);
+    const matchesStart = !startDate || p.date >= startDate;
+    const matchesEnd = !endDate || p.date <= endDate;
+    return matchesSupplier && matchesStart && matchesEnd;
+  });
 
   // CÁLCULO DE DEUDAS POR MES BASADAS EN LA BÚSQUEDA DEL PROVEEDOR
   const calculateDebtByMonth = (yearMonthPrefix: string) => {
@@ -327,29 +333,61 @@ export const SuppliersView: React.FC = () => {
         </div>
       </div>
 
-      {/* BUSCADOR UNIFICADO DE PROVEEDORES */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-amber-400 absolute left-3 top-3" />
-          <input
-            type="text"
-            placeholder="🔍 Buscar proveedor por nombre comercial o rubro para filtrar deudas y facturas..."
-            value={supplierListSearch}
-            onChange={e => setSupplierListSearch(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-20 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
-          />
-          {supplierListSearch && (
+      {/* BUSCADOR UNIFICADO DE PROVEEDORES Y ALMANAQUE DESDE-HASTA */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+          <div className="relative">
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar Proveedor o Rubro</label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-amber-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder="🔍 Buscar proveedor por nombre comercial o rubro..."
+                value={supplierListSearch}
+                onChange={e => setSupplierListSearch(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-20 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
+              />
+              {supplierListSearch && (
+                <button
+                  onClick={() => setSupplierListSearch('')}
+                  className="absolute right-2.5 top-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-2 py-1 rounded-lg border border-slate-700 transition-colors"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">📅 Seleccionar Período (Desde - Hasta)</label>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(s, e) => {
+                setStartDate(s);
+                setEndDate(e);
+              }}
+            />
+          </div>
+        </div>
+
+        {(supplierListSearch || startDate || endDate) && (
+          <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
+            <span className="text-[11px] text-amber-400 font-semibold">
+              Filtros activos ({sortedAndFilteredSuppliers.length} proveedores listados)
+            </span>
             <button
-              onClick={() => setSupplierListSearch('')}
-              className="absolute right-2.5 top-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-2 py-1 rounded-lg border border-slate-700 transition-colors"
+              onClick={() => {
+                setSupplierListSearch('');
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 font-medium"
             >
-              Limpiar Búsqueda
+              <X className="w-3 h-3" /> Limpiar Todos los Filtros
             </button>
-          )}
-        </div>
-        <div className="text-xs text-slate-400 font-medium">
-          Mostrando <strong>{sortedAndFilteredSuppliers.length}</strong> de <strong>{suppliers.length}</strong> proveedores
-        </div>
+          </div>
+        )}
       </div>
 
       {/* TABLA BASE DE PROVEEDORES */}
