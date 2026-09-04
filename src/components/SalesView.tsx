@@ -4,14 +4,18 @@ import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
 import { Plus, Upload, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw } from 'lucide-react';
 import { Sale } from '../types/gastronomy';
+import { DateRangePicker } from './DateRangePicker';
 
 export const SalesView: React.FC = () => {
   const { sales, addSale } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
 
-  // Filtros de Rango de Fechas (Almanaque Desde / Hasta)
+  // Filtros de Ventas: Rango de Fechas (Calendario Unificado), Turno, Canal y Método de Pago
   const [startDate, setStartDate] = useState<string>('2026-09-01');
   const [endDate, setEndDate] = useState<string>('2026-09-30');
+  const [filterShift, setFilterShift] = useState<string>('TODOS');
+  const [filterChannel, setFilterChannel] = useState<string>('TODOS');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>('TODOS');
 
   // Form State para Nueva Venta
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -58,14 +62,17 @@ export const SalesView: React.FC = () => {
     alert('✅ Se importaron cierres de caja de Fudo/MaxiRest con turnos y cubiertos.');
   };
 
-  // Filtrado de Ventas por el Rango de Fechas Seleccionado en el Almanaque
+  // Filtrado Multicriterio de Ventas (Fecha, Turno, Canal y Método de Pago)
   const filteredSales = sales.filter(s => {
     if (startDate && s.date < startDate) return false;
     if (endDate && s.date > endDate) return false;
+    if (filterShift !== 'TODOS' && s.shift !== filterShift) return false;
+    if (filterChannel !== 'TODOS' && s.channel !== filterChannel) return false;
+    if (filterPaymentMethod !== 'TODOS' && s.paymentMethod !== filterPaymentMethod) return false;
     return true;
   });
 
-  // CÁLCULO DINÁMICO DE KPIS SEGÚN EL PERÍODO SELECCIONADO EN EL CALENDARIO
+  // CÁLCULO DINÁMICO DE KPIS SEGÚN LOS FILTROS SELECCIONADOS
   const periodMediodia = filteredSales.filter(s => s.shift === 'MEDIODIA').reduce((acc, s) => acc + s.netAmount, 0);
   const periodNoche = filteredSales.filter(s => s.shift === 'NOCHE').reduce((acc, s) => acc + s.netAmount, 0);
   const periodCovers = filteredSales.reduce((acc, s) => acc + (s.covers || 0), 0);
@@ -81,7 +88,7 @@ export const SalesView: React.FC = () => {
             Ventas por Turno (Mediodía / Noche) y Cubiertos
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Selecciona un período en el almanaque para ver el rendimiento acumulado en las tarjetas.
+            Filtra por período, turno, canal o medio de pago para ver los indicadores dinámicos.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -102,53 +109,87 @@ export const SalesView: React.FC = () => {
         </div>
       </div>
 
-      {/* BARRA DE SELECCIÓN DE PERÍODO (ALMANAQUE CALENDARIO DESDE / HASTA) */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+      {/* PANEL DE FILTROS (ALMANAQUE UNIFICADO DESDE/HASTA + TURNO + CANAL + MÉTODO DE PAGO) */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div className="text-xs font-bold text-slate-200 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-amber-400" />
-            Seleccionar Período de Ventas en el Almanaque
+            <Filter className="w-4 h-4 text-amber-400" />
+            Filtros de Ventas: Período (Almanaque Unificado), Turno, Canal y Medio de Pago
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setStartDate('2026-09-01');
-                setEndDate('2026-09-30');
-              }}
-              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-2.5 py-1 rounded-lg border border-slate-700 transition-all"
-            >
-              Este Mes (Septiembre)
-            </button>
-            <button
-              onClick={() => {
-                setStartDate('');
-                setEndDate('');
-              }}
-              className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-2.5 py-1 rounded-lg border border-slate-700 transition-all flex items-center gap-1"
-            >
-              <RefreshCw className="w-3 h-3 text-amber-400" /> Ver Todo
-            </button>
-          </div>
+          
+          <button
+            onClick={() => {
+              setStartDate('2026-09-01');
+              setEndDate('2026-09-30');
+              setFilterShift('TODOS');
+              setFilterChannel('TODOS');
+              setFilterPaymentMethod('TODOS');
+            }}
+            className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-3 py-1.5 rounded-xl border border-slate-700 transition-all flex items-center gap-1.5 w-fit"
+          >
+            <RefreshCw className="w-3 h-3 text-amber-400" /> Resetear Filtros
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs text-slate-400 block mb-1 font-medium">🗓️ Fecha Desde (Calendario)</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-300 shadow-inner cursor-pointer"
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          {/* 1. Almanaque Unificado Seleccionable "Desde - Hasta" */}
+          <div className="md:col-span-1">
+            <label className="text-[11px] text-slate-400 block mb-1 font-semibold">🗓️ Seleccionar Período (Desde - Hasta)</label>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(start, end) => {
+                setStartDate(start);
+                setEndDate(end);
+              }}
             />
           </div>
+
+          {/* 2. Filtro por Turno */}
           <div>
-            <label className="text-xs text-slate-400 block mb-1 font-medium">🗓️ Fecha Hasta (Calendario)</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-300 shadow-inner cursor-pointer"
-            />
+            <label className="text-[11px] text-slate-400 block mb-1 font-semibold">☀️🌙 Turno</label>
+            <select
+              value={filterShift}
+              onChange={e => setFilterShift(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-amber-500 outline-none font-medium"
+            >
+              <option value="TODOS">Todos los Turnos</option>
+              <option value="MEDIODIA">☀️ Turno Mediodía</option>
+              <option value="NOCHE">🌙 Turno Noche</option>
+            </select>
+          </div>
+
+          {/* 3. Filtro por Canal */}
+          <div>
+            <label className="text-[11px] text-slate-400 block mb-1 font-semibold">🏪 Canal de Venta</label>
+            <select
+              value={filterChannel}
+              onChange={e => setFilterChannel(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-amber-500 outline-none font-medium"
+            >
+              <option value="TODOS">Todos los Canales</option>
+              <option value="SALON">Salón</option>
+              <option value="DELIVERY">Delivery Propio</option>
+              <option value="TAKE_AWAY">Take Away / Mostrador</option>
+              <option value="RAPPI_PEDIDOSYA">Rappi / PedidosYa</option>
+            </select>
+          </div>
+
+          {/* 4. Filtro por Método de Pago */}
+          <div>
+            <label className="text-[11px] text-slate-400 block mb-1 font-semibold">💳 Método de Pago</label>
+            <select
+              value={filterPaymentMethod}
+              onChange={e => setFilterPaymentMethod(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-amber-500 outline-none font-medium"
+            >
+              <option value="TODOS">Todos los Medios de Pago</option>
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="MERCADO_PAGO">Mercado Pago / QR</option>
+              <option value="TARJETA_DEBITO">Tarjeta Débito</option>
+              <option value="TARJETA_CREDITO">Tarjeta Crédito</option>
+              <option value="TRANSFERENCIA">Transferencia Bancaria</option>
+            </select>
           </div>
         </div>
       </div>
