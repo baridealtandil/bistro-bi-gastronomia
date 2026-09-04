@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Check, Plus } from 'lucide-react';
+import { Search, ChevronDown, Check, Plus, X } from 'lucide-react';
 
 export const DEFAULT_GASTRONOMY_CATEGORIES = [
   'Carnes, Achuras & Pollo',
@@ -40,7 +40,7 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
   value,
   onChange,
   options,
-  placeholder = 'Buscar o seleccionar...',
+  placeholder = 'Seleccionar o escribir rubro...',
   label,
   required = false,
   allowCustom = true,
@@ -48,53 +48,53 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
   icon
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(value || '');
+  const [filterText, setFilterText] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setSearchQuery(value || '');
-  }, [value]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setFilterText('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Determine if search query is unchanged from current value
-  const isValueUnchanged = value && searchQuery.trim().toLowerCase() === value.trim().toLowerCase();
-
-  // If search query is empty or unchanged from selected value, show ALL options so user can pick any item
-  const filteredOptions = (!searchQuery.trim() || isValueUnchanged)
+  const filteredOptions = !filterText.trim()
     ? options
     : options.filter(opt =>
-        opt.toLowerCase().includes(searchQuery.toLowerCase().trim())
+        opt.toLowerCase().includes(filterText.toLowerCase().trim())
       );
 
   const isExactMatch = options.some(
-    opt => opt.toLowerCase().trim() === searchQuery.toLowerCase().trim()
+    opt => opt.toLowerCase().trim() === filterText.toLowerCase().trim()
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
-    setSearchQuery(text);
+    setFilterText(text);
     onChange(text);
     setIsOpen(true);
   };
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.select();
     setIsOpen(true);
+    e.target.select();
   };
 
   const handleSelectOption = (opt: string) => {
     onChange(opt);
-    setSearchQuery(opt);
+    setFilterText('');
     setIsOpen(false);
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange('');
+    setFilterText('');
+    setIsOpen(true);
   };
 
   return (
@@ -103,38 +103,57 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
 
       <div className="relative">
         <div className="absolute left-3 top-2.5 text-slate-500 flex items-center pointer-events-none">
-          {icon || <Search className="w-3.5 h-3.5" />}
+          {icon || <Search className="w-3.5 h-3.5 text-amber-400" />}
         </div>
         
         <input
           type="text"
-          value={searchQuery}
+          value={isOpen && filterText !== '' ? filterText : value}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           placeholder={placeholder}
           required={required}
-          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium cursor-pointer"
+          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-14 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium cursor-pointer"
         />
 
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
-        >
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
+        <div className="absolute right-2.5 top-2.5 flex items-center gap-1 text-slate-500">
+          {value && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="hover:text-slate-200 p-0.5"
+              title="Limpiar"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (isOpen) {
+                setIsOpen(false);
+                setFilterText('');
+              } else {
+                setIsOpen(true);
+              }
+            }}
+            className="hover:text-slate-200 p-0.5"
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180 text-amber-400' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {isOpen && (
         <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-950 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
-          {allowCustom && searchQuery.trim() !== '' && !isExactMatch && (
+          {allowCustom && filterText.trim() !== '' && !isExactMatch && (
             <button
               type="button"
-              onClick={() => handleSelectOption(searchQuery.trim())}
+              onClick={() => handleSelectOption(filterText.trim())}
               className="w-full text-left p-2.5 text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition-colors flex items-center gap-2 font-bold"
             >
               <Plus className="w-3.5 h-3.5 text-amber-400" />
-              <span>Usar categoría nueva: <strong>"{searchQuery.trim()}"</strong></span>
+              <span>Usar categoría nueva: <strong>"{filterText.trim()}"</strong></span>
             </button>
           )}
 

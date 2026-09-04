@@ -58,7 +58,7 @@ export const SuppliersView: React.FC = () => {
   // Form State Proveedor
   const [supName, setSupName] = useState('');
   const [supCuit, setSupCuit] = useState('');
-  const [supCategory, setSupCategory] = useState('Carnes, Achuras & Pollo');
+  const [supCategory, setSupCategory] = useState('');
   const [supPhone, setSupPhone] = useState('');
 
   // Form State Pago a Proveedor
@@ -126,7 +126,7 @@ export const SuppliersView: React.FC = () => {
     addSupplier({
       name: supName,
       cuit: supCuit || '30-00000000-0',
-      category: supCategory,
+      category: supCategory || 'Varios & Gastos Generales',
       phone: supPhone || '11-0000-0000',
       email: '',
       paymentTermDays: 15
@@ -134,6 +134,7 @@ export const SuppliersView: React.FC = () => {
 
     setSupName('');
     setSupCuit('');
+    setSupCategory('');
     setSupPhone('');
     setShowSupplierModal(false);
   };
