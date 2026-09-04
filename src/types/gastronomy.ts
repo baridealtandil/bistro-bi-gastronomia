@@ -57,7 +57,7 @@ export interface Expense {
   id: string;
   date: string;
   category: string;
-  type: 'FIJO' | 'VARIABLE' | 'SERVICIO';
+  type: string;
   description: string;
   amount: number;
   dueDate?: string;

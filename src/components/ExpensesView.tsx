@@ -5,7 +5,11 @@ import { useGastronomy } from '../context/GastronomyContext';
 import { Plus, Search, CheckCircle2, DollarSign, X } from 'lucide-react';
 import { SearchableCombobox } from './SearchableCombobox';
 
-const COMMON_SERVICE_PROVIDERS = [
+const COMMON_EXPENSE_PROVIDERS = [
+  'Supermercado (Coto / Carrefour / Jumbo)',
+  'Panadería & Repostería',
+  'Kiosco & Almacén de Barrio',
+  'Caja Chica / Compras Rápidas',
   'Usina Popular de Electricidad',
   'Camuzzi Gas Pampeana',
   'Telecom / Personal Internet',
@@ -18,7 +22,12 @@ const COMMON_SERVICE_PROVIDERS = [
   'Tasas Municipalidad'
 ];
 
-const EXPENSE_CATEGORIES = [
+const DEFAULT_EXPENSE_CATEGORIES = [
+  'SUPERMERCADO',
+  'PANADERIA',
+  'KIOSCO',
+  'CAJA CHICA',
+  'VARIOS & CAJA',
   'LUZ',
   'GAS',
   'AGUA',
@@ -33,6 +42,14 @@ const EXPENSE_CATEGORIES = [
   'HONORARIOS'
 ];
 
+const DEFAULT_EXPENSE_TYPES = [
+  'Gasto de Caja / Varios (Supermercado, Kiosco, etc.)',
+  'Servicio Público',
+  'Gasto Fijo',
+  'Gasto Variable',
+  'Caja Chica'
+];
+
 export const ExpensesView: React.FC = () => {
   const { expenses, addExpense } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
@@ -44,10 +61,16 @@ export const ExpensesView: React.FC = () => {
 
   // Form State Modal Registrar Pago
   const [providerName, setProviderName] = useState('');
-  const [category, setCategory] = useState('LUZ');
-  const [type, setType] = useState<'SERVICIO' | 'FIJO' | 'VARIABLE'>('SERVICIO');
+  const [category, setCategory] = useState('SUPERMERCADO');
+  const [type, setType] = useState('Gasto de Caja / Varios (Supermercado, Kiosco, etc.)');
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Lista dinámica de categorías (combina iniciales + las que agregue manualmente el usuario)
+  const allCategories = Array.from(new Set([
+    ...DEFAULT_EXPENSE_CATEGORIES,
+    ...expenses.map(e => e.category)
+  ]));
 
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,9 +78,9 @@ export const ExpensesView: React.FC = () => {
 
     addExpense({
       date: paymentDate || new Date().toISOString().split('T')[0],
-      category,
-      type,
-      description: providerName,
+      category: category.trim().toUpperCase() || 'VARIOS & CAJA',
+      type: type.trim() || 'Gasto de Caja / Varios',
+      description: providerName.trim(),
       amount: parseFloat(amount),
       dueDate: paymentDate || new Date().toISOString().split('T')[0],
       status: 'PAGADO'
@@ -72,7 +95,8 @@ export const ExpensesView: React.FC = () => {
   const filteredExpenses = expenses.filter(e => {
     const matchesProvider = searchProvider.trim() === '' ||
       e.description.toLowerCase().includes(searchProvider.toLowerCase()) ||
-      e.category.toLowerCase().includes(searchProvider.toLowerCase());
+      e.category.toLowerCase().includes(searchProvider.toLowerCase()) ||
+      (e.type && e.type.toLowerCase().includes(searchProvider.toLowerCase()));
 
     const matchesCategory = filterCategory === 'ALL' || e.category === filterCategory;
 
@@ -89,15 +113,17 @@ export const ExpensesView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            Registro de Pago de Servicios Públicos y Gastos
+            Registro de Gastos de Caja, Servicios y Varios
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Módulo de registro directo al momento de realizar el pago de servicios (Usina, Camuzzi, Telecom, etc.) y gastos fijos.
+            Carga directa de pagos de caja (supermercado, panadería, kiosco, caja chica), servicios públicos y gastos operativos.
           </p>
         </div>
         <button
           onClick={() => {
             setProviderName('');
+            setCategory('SUPERMERCADO');
+            setType('Gasto de Caja / Varios (Supermercado, Kiosco, etc.)');
             setAmount('');
             setPaymentDate(new Date().toISOString().split('T')[0]);
             setShowModal(true);
@@ -105,21 +131,21 @@ export const ExpensesView: React.FC = () => {
           className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
         >
           <Plus className="w-4 h-4" />
-          + Registrar Pago de Servicio
+          + Registrar Gasto / Pago de Caja
         </button>
       </div>
 
       {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / FECHA / CATEGORÍA */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Buscar por Proveedor / Servicio */}
+          {/* Buscar por Comercio / Detalle */}
           <div className="relative">
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar por Nombre del Proveedor / Servicio</label>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar por Comercio / Proveedor / Detalle</label>
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-amber-400 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="Ej: Usina, Camuzzi, Telecom, Alquiler..."
+                placeholder="Ej: Coto, Panadería, Kiosco, Usina, Alquiler..."
                 value={searchProvider}
                 onChange={e => setSearchProvider(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-500 outline-none font-bold"
@@ -149,7 +175,7 @@ export const ExpensesView: React.FC = () => {
               className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none font-medium"
             >
               <option value="ALL">Todas las Categorías</option>
-              {EXPENSE_CATEGORIES.map(cat => (
+              {allCategories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
@@ -173,15 +199,15 @@ export const ExpensesView: React.FC = () => {
         )}
       </div>
 
-      {/* LISTADO / TABLA DE PAGOS REGISTRADOS (REEMPLAZA LAS TARJETAS) */}
+      {/* LISTADO / TABLA DE GASTOS Y SERVICIOS REGISTRADOS */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-950/60">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              Listado de Pagos de Servicios y Gastos Registrados
+              Listado de Gastos de Caja y Servicios Registrados
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              {filteredExpenses.length} pagos de servicios en el periodo.
+              {filteredExpenses.length} comprobantes / gastos en el periodo.
             </p>
           </div>
           <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit flex items-center gap-1">
@@ -194,7 +220,7 @@ export const ExpensesView: React.FC = () => {
             <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
               <tr>
                 <th className="p-3">Fecha de Pago</th>
-                <th className="p-3">Proveedor / Servicio</th>
+                <th className="p-3">Proveedor / Comercio / Concepto</th>
                 <th className="p-3">Categoría / Rubro</th>
                 <th className="p-3">Tipo de Gasto</th>
                 <th className="p-3">Monto Pagado</th>
@@ -213,7 +239,7 @@ export const ExpensesView: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-3 text-slate-400 font-medium">
-                      {e.type === 'SERVICIO' ? 'Servicio Público' : e.type === 'FIJO' ? 'Gasto Fijo' : 'Gasto Variable'}
+                      {e.type}
                     </td>
                     <td className="p-3 font-black text-emerald-400 text-sm">
                       ${e.amount.toLocaleString('es-AR')}
@@ -228,7 +254,7 @@ export const ExpensesView: React.FC = () => {
               ) : (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-slate-500 italic text-xs">
-                    No se encontraron pagos de servicios o gastos registrados con los filtros aplicados.
+                    No se encontraron gastos o servicios registrados con los filtros aplicados.
                   </td>
                 </tr>
               )}
@@ -237,51 +263,52 @@ export const ExpensesView: React.FC = () => {
         </div>
       </div>
 
-      {/* MODAL REGISTRAR PAGO DE SERVICIO / GASTO */}
+      {/* MODAL REGISTRAR GASTO DE CAJA / SERVICIO */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Registrar Pago de Servicio o Gasto</h3>
+              <h3 className="text-base font-bold text-white">Registrar Gasto de Caja / Servicio</h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
             </div>
 
             <form onSubmit={handleAddExpense} className="space-y-3">
+              {/* Proveedor / Establecimiento con búsqueda o creación manual */}
               <div>
                 <SearchableCombobox
-                  label="Nombre del Proveedor / Empresa de Servicio"
+                  label="Proveedor / Comercio / Establecimiento"
                   value={providerName}
                   onChange={setProviderName}
-                  options={COMMON_SERVICE_PROVIDERS}
-                  placeholder="Ej. Usina, Camuzzi, Telecom..."
+                  options={COMMON_EXPENSE_PROVIDERS}
+                  placeholder="Escribir o buscar (ej. Coto, Panadería, Kiosco)..."
                   allowCustom={true}
                   required={true}
                 />
               </div>
 
+              {/* Categoría y Tipo de Gasto con búsqueda y creación manual libre */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <SearchableCombobox
-                    label="Categoría"
+                    label="Categoría / Rubro"
                     value={category}
                     onChange={setCategory}
-                    options={EXPENSE_CATEGORIES}
-                    placeholder="Buscar categoría..."
+                    options={allCategories}
+                    placeholder="Escribir o buscar categoría..."
                     allowCustom={true}
                     required={true}
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1 font-medium">Tipo de Gasto</label>
-                  <select
+                  <SearchableCombobox
+                    label="Tipo de Gasto"
                     value={type}
-                    onChange={ev => setType(ev.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                  >
-                    <option value="SERVICIO">Servicio Público</option>
-                    <option value="FIJO">Gasto Fijo</option>
-                    <option value="VARIABLE">Gasto Variable</option>
-                  </select>
+                    onChange={setType}
+                    options={DEFAULT_EXPENSE_TYPES}
+                    placeholder="Escribir tipo (ej. Varios)..."
+                    allowCustom={true}
+                    required={true}
+                  />
                 </div>
               </div>
 
@@ -290,7 +317,7 @@ export const ExpensesView: React.FC = () => {
                   <label className="text-xs text-slate-400 block mb-1 font-medium">Monto Pagado ($)</label>
                   <input
                     type="number"
-                    placeholder="2300000"
+                    placeholder="15000"
                     value={amount}
                     onChange={ev => setAmount(ev.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold text-emerald-400"
@@ -321,7 +348,7 @@ export const ExpensesView: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
                 >
-                  Guardar Pago
+                  Guardar Gasto
                 </button>
               </div>
             </form>
