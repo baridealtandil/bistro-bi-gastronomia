@@ -45,18 +45,20 @@ interface GastronomyContextType {
   breakEvenTarget: number;
   pendingChecksAmount7Days: number;
   pendingServicesAmount: number;
+  totalCoversMonth: number;
+  averageTicketPerCover: number;
 }
 
 // Datos iniciales de demostración realistas para un restaurante
 const INITIAL_SALES: Sale[] = [
-  { id: 's1', date: '2026-09-01', channel: 'SALON', paymentMethod: 'EFECTIVO', grossAmount: 450000, commissionAmount: 0, netAmount: 450000 },
-  { id: 's2', date: '2026-09-01', channel: 'SALON', paymentMethod: 'MERCADO_PAGO', grossAmount: 380000, commissionAmount: 7600, netAmount: 372400 },
-  { id: 's3', date: '2026-09-01', channel: 'RAPPI', paymentMethod: 'CREDITO', grossAmount: 180000, commissionAmount: 36000, netAmount: 144000 },
-  { id: 's4', date: '2026-09-02', channel: 'SALON', paymentMethod: 'DEBITO', grossAmount: 520000, commissionAmount: 7800, netAmount: 512200 },
-  { id: 's5', date: '2026-09-02', channel: 'PEDIDOS_YA', paymentMethod: 'MERCADO_PAGO', grossAmount: 210000, commissionAmount: 42000, netAmount: 168000 },
-  { id: 's6', date: '2026-09-03', channel: 'SALON', paymentMethod: 'EFECTIVO', grossAmount: 610000, commissionAmount: 0, netAmount: 610000 },
-  { id: 's7', date: '2026-09-03', channel: 'TAKEAWAY', paymentMethod: 'TRANSFERENCIA', grossAmount: 140000, commissionAmount: 0, netAmount: 140000 },
-  { id: 's8', date: '2026-09-04', channel: 'SALON', paymentMethod: 'MERCADO_PAGO', grossAmount: 490000, commissionAmount: 9800, netAmount: 480200 },
+  { id: 's1', date: '2026-09-01', shift: 'MEDIODIA', covers: 35, channel: 'SALON', paymentMethod: 'EFECTIVO', grossAmount: 450000, commissionAmount: 0, netAmount: 450000 },
+  { id: 's2', date: '2026-09-01', shift: 'NOCHE', covers: 42, channel: 'SALON', paymentMethod: 'MERCADO_PAGO', grossAmount: 380000, commissionAmount: 7600, netAmount: 372400 },
+  { id: 's3', date: '2026-09-01', shift: 'NOCHE', covers: 15, channel: 'RAPPI', paymentMethod: 'CREDITO', grossAmount: 180000, commissionAmount: 36000, netAmount: 144000 },
+  { id: 's4', date: '2026-09-02', shift: 'MEDIODIA', covers: 48, channel: 'SALON', paymentMethod: 'DEBITO', grossAmount: 520000, commissionAmount: 7800, netAmount: 512200 },
+  { id: 's5', date: '2026-09-02', shift: 'NOCHE', covers: 22, channel: 'PEDIDOS_YA', paymentMethod: 'MERCADO_PAGO', grossAmount: 210000, commissionAmount: 42000, netAmount: 168000 },
+  { id: 's6', date: '2026-09-03', shift: 'NOCHE', covers: 55, channel: 'SALON', paymentMethod: 'EFECTIVO', grossAmount: 610000, commissionAmount: 0, netAmount: 610000 },
+  { id: 's7', date: '2026-09-03', shift: 'MEDIODIA', covers: 18, channel: 'TAKEAWAY', paymentMethod: 'TRANSFERENCIA', grossAmount: 140000, commissionAmount: 0, netAmount: 140000 },
+  { id: 's8', date: '2026-09-04', shift: 'NOCHE', covers: 40, channel: 'SALON', paymentMethod: 'MERCADO_PAGO', grossAmount: 490000, commissionAmount: 9800, netAmount: 480200 },
 ];
 
 const INITIAL_SUPPLIERS: Supplier[] = [
@@ -70,7 +72,7 @@ const INITIAL_PURCHASES: PurchaseInvoice[] = [
     id: 'p1', supplierId: 'sup1', supplierName: 'Distribuidora Carnes del Sur', invoiceNumber: 'FC-A-0001-0004512',
     date: '2026-09-01', dueDate: '2026-09-16', amount: 420000, status: 'PENDIENTE',
     items: [
-      { description: 'Ojo de Bife (kg)', qty: 40, unitPrice: 8500, prevUnitPrice: 7900 }, // +7.5% aumento
+      { description: 'Ojo de Bife (kg)', qty: 40, unitPrice: 8500, prevUnitPrice: 7900 },
       { description: 'Lomo (kg)', qty: 10, unitPrice: 8000, prevUnitPrice: 8000 },
     ]
   },
@@ -128,8 +130,8 @@ const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   {
     id: 'm1',
     sender: 'assistant',
-    text: '¡Hola! Soy tu Asistente Financiero y Administrativo IA para el restaurante. Puedo responder preguntas sobre tus ventas, proveedores, facturas, sueldos, cheques y estado de rentabilidad en tiempo real. ¿En qué puedo ayudarte hoy?',
-    timestamp: '17:45'
+    text: '¡Hola! Soy tu Asistente Financiero y Administrativo IA para el restaurante. Puedo responder preguntas sobre tus ventas, turnos (mediodía/noche), cubiertos por turno, proveedores, facturas, sueldos, cheques y estado de rentabilidad en tiempo real. ¿En qué puedo ayudarte hoy?',
+    timestamp: '18:30'
   }
 ];
 
@@ -147,7 +149,6 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [dishes] = useState<Dish[]>(INITIAL_DISHES);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT_MESSAGES);
 
-  // Carga inicial de localStorage si está disponible
   useEffect(() => {
     try {
       const savedSales = localStorage.getItem('gastro_sales');
@@ -198,12 +199,15 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const totalLaborMonth = employees.reduce((acc, e) => acc + e.baseSalary, 0);
   const totalFixedExpensesMonth = expenses.filter(e => e.type === 'FIJO' || e.type === 'SERVICIO').reduce((acc, e) => acc + e.amount, 0);
 
+  const totalCoversMonth = sales.reduce((acc, s) => acc + (s.covers || 0), 0);
+  const averageTicketPerCover = totalCoversMonth > 0 ? totalSalesNetMonth / totalCoversMonth : 0;
+
   const foodCostPercentage = totalSalesNetMonth > 0 ? (totalPurchasesMonth / totalSalesNetMonth) * 100 : 0;
   const laborCostPercentage = totalSalesNetMonth > 0 ? (totalLaborMonth / totalSalesNetMonth) * 100 : 0;
   const primeCostPercentage = foodCostPercentage + laborCostPercentage;
 
   const netProfitEstMonth = totalSalesNetMonth - (totalPurchasesMonth + totalLaborMonth + totalFixedExpensesMonth);
-  const breakEvenTarget = 2800000; // $2.8M costo total operativo estimado
+  const breakEvenTarget = 2800000;
 
   const pendingChecksAmount7Days = checks
     .filter(c => c.status === 'PENDIENTE')
@@ -239,6 +243,8 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             netProfitEstMonth,
             pendingChecksAmount7Days,
             pendingServicesAmount,
+            totalCoversMonth,
+            averageTicketPerCover,
             suppliers,
             purchases,
             expenses,
@@ -262,7 +268,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const fallbackMsg: ChatMessage = {
         id: `b_${Date.now()}`,
         sender: 'assistant',
-        text: `📊 **Resumen Financiero Automatizado**:\n\n- **Facturación Neta Total**: $${totalSalesNetMonth.toLocaleString('es-AR')}\n- **Prime Cost Actual**: ${primeCostPercentage.toFixed(1)}% (Materia Prima: ${foodCostPercentage.toFixed(1)}% | Mano de Obra: ${laborCostPercentage.toFixed(1)}%)\n- **Cheques Pendientes**: $${pendingChecksAmount7Days.toLocaleString('es-AR')}\n- **Servicios por Pagar**: $${pendingServicesAmount.toLocaleString('es-AR')}\n- **Utilidad Neta Estimada**: $${netProfitEstMonth.toLocaleString('es-AR')}`,
+        text: `📊 **Resumen Financiero Automatizado**:\n\n- **Facturación Neta Total**: $${totalSalesNetMonth.toLocaleString('es-AR')}\n- **Cubiertos Totales**: ${totalCoversMonth} (Ticket Promedio/Cubierto: $${Math.round(averageTicketPerCover).toLocaleString('es-AR')})\n- **Prime Cost Actual**: ${primeCostPercentage.toFixed(1)}% (Materia Prima: ${foodCostPercentage.toFixed(1)}% | Mano de Obra: ${laborCostPercentage.toFixed(1)}%)\n- **Cheques Pendientes**: $${pendingChecksAmount7Days.toLocaleString('es-AR')}\n- **Servicios por Pagar**: $${pendingServicesAmount.toLocaleString('es-AR')}\n- **Utilidad Neta Estimada**: $${netProfitEstMonth.toLocaleString('es-AR')}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setChatMessages(prev => [...prev, fallbackMsg]);
@@ -300,7 +306,9 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         netProfitEstMonth,
         breakEvenTarget,
         pendingChecksAmount7Days,
-        pendingServicesAmount
+        pendingServicesAmount,
+        totalCoversMonth,
+        averageTicketPerCover
       }}
     >
       {children}

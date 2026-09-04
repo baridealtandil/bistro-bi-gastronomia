@@ -3,6 +3,8 @@ export type UserRole = 'ADMIN' | 'COLLABORATOR';
 export interface Sale {
   id: string;
   date: string; // YYYY-MM-DD
+  shift: 'MEDIODIA' | 'NOCHE';
+  covers: number; // Registro de cubiertos / comensales
   channel: 'SALON' | 'TAKEAWAY' | 'DELIVERY_PROPIO' | 'RAPPI' | 'PEDIDOS_YA';
   paymentMethod: 'EFECTIVO' | 'MERCADO_PAGO' | 'DEBITO' | 'CREDITO' | 'TRANSFERENCIA';
   grossAmount: number;
