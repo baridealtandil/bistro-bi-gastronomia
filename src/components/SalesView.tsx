@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Plus, Upload, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw } from 'lucide-react';
+import { Plus, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw } from 'lucide-react';
 import { Sale } from '../types/gastronomy';
 import { DateRangePicker } from './DateRangePicker';
 
@@ -48,20 +48,6 @@ export const SalesView: React.FC = () => {
     setShowModal(false);
   };
 
-  const handleSimulateCsvImport = () => {
-    addSale({
-      date: new Date().toISOString().split('T')[0],
-      shift: 'NOCHE',
-      covers: 48,
-      channel: 'SALON',
-      paymentMethod: 'MERCADO_PAGO',
-      grossAmount: 340000,
-      commissionAmount: 6800,
-      notes: 'Importado de Fudo POS vía CSV (Turno Noche)'
-    });
-    alert('✅ Se importaron cierres de caja de Fudo/MaxiRest con turnos y cubiertos.');
-  };
-
   // Filtrado Multicriterio de Ventas (Fecha, Turno, Canal y Método de Pago)
   const filteredSales = sales.filter(s => {
     if (startDate && s.date < startDate) return false;
@@ -92,13 +78,6 @@ export const SalesView: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleSimulateCsvImport}
-            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-700 transition-all"
-          >
-            <Upload className="w-4 h-4 text-amber-400" />
-            Importar CSV (Fudo/MaxiRest)
-          </button>
           <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
