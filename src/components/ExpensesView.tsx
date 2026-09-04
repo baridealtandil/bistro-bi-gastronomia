@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Plus, Search, CheckCircle2, DollarSign, X } from 'lucide-react';
+import { Plus, Search, CheckCircle2, DollarSign, X, CreditCard } from 'lucide-react';
 import { SearchableCombobox } from './SearchableCombobox';
 import { DateRangePicker } from './DateRangePicker';
 
@@ -51,6 +51,17 @@ const DEFAULT_EXPENSE_TYPES = [
   'Caja Chica'
 ];
 
+const DEFAULT_PAYMENT_METHODS = [
+  'EFECTIVO (Caja Chica)',
+  'TRANSFERENCIA BANCARIA',
+  'MERCADO PAGO / DIGITAL',
+  'TARJETA DE DÉBITO',
+  'TARJETA DE CRÉDITO',
+  'CHEQUE PROPIO',
+  'CHEQUE DE TERCERO',
+  'DÉBITO AUTOMÁTICO'
+];
+
 export const ExpensesView: React.FC = () => {
   const { expenses, addExpense } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
@@ -58,6 +69,7 @@ export const ExpensesView: React.FC = () => {
   // Buscador y Filtros de la Tabla
   const [searchProvider, setSearchProvider] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -65,13 +77,20 @@ export const ExpensesView: React.FC = () => {
   const [providerName, setProviderName] = useState('');
   const [category, setCategory] = useState('SUPERMERCADO');
   const [type, setType] = useState('Gasto de Caja / Varios (Supermercado, Kiosco, etc.)');
+  const [paymentMethod, setPaymentMethod] = useState('EFECTIVO (Caja Chica)');
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Lista dinámica de categorías (combina iniciales + las que agregue manualmente el usuario)
+  // Lista dinámica de categorías
   const allCategories = Array.from(new Set([
     ...DEFAULT_EXPENSE_CATEGORIES,
     ...expenses.map(e => e.category)
+  ]));
+
+  // Lista dinámica de métodos de pago
+  const allPaymentMethods = Array.from(new Set([
+    ...DEFAULT_PAYMENT_METHODS,
+    ...expenses.map(e => e.paymentMethod).filter(Boolean) as string[]
   ]));
 
   const handleAddExpense = (e: React.FormEvent) => {
@@ -84,6 +103,7 @@ export const ExpensesView: React.FC = () => {
       type: type.trim() || 'Gasto de Caja / Varios',
       description: providerName.trim(),
       amount: parseFloat(amount),
+      paymentMethod: paymentMethod.trim() || 'EFECTIVO (Caja Chica)',
       dueDate: paymentDate || new Date().toISOString().split('T')[0],
       status: 'PAGADO'
     });
@@ -93,20 +113,23 @@ export const ExpensesView: React.FC = () => {
     setShowModal(false);
   };
 
-  // Filtrado de lista con DateRangePicker
+  // Filtrado de lista
   const filteredExpenses = expenses.filter(e => {
     const matchesProvider = searchProvider.trim() === '' ||
       e.description.toLowerCase().includes(searchProvider.toLowerCase()) ||
       e.category.toLowerCase().includes(searchProvider.toLowerCase()) ||
-      (e.type && e.type.toLowerCase().includes(searchProvider.toLowerCase()));
+      (e.type && e.type.toLowerCase().includes(searchProvider.toLowerCase())) ||
+      (e.paymentMethod && e.paymentMethod.toLowerCase().includes(searchProvider.toLowerCase()));
 
     const matchesCategory = filterCategory === 'ALL' || e.category === filterCategory;
+
+    const matchesMethod = filterPaymentMethod === 'ALL' || e.paymentMethod === filterPaymentMethod;
 
     const expDate = e.date || e.dueDate || '';
     const matchesStartDate = !startDate || expDate >= startDate;
     const matchesEndDate = !endDate || expDate <= endDate;
 
-    return matchesProvider && matchesCategory && matchesStartDate && matchesEndDate;
+    return matchesProvider && matchesCategory && matchesMethod && matchesStartDate && matchesEndDate;
   });
 
   const totalFilteredAmount = filteredExpenses.reduce((acc, e) => acc + e.amount, 0);
@@ -120,7 +143,7 @@ export const ExpensesView: React.FC = () => {
             Registro de Gastos de Caja, Servicios y Varios
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Carga directa de pagos de caja (supermercado, panadería, kiosco, caja chica), servicios públicos y gastos operativos.
+            Carga directa de pagos con especificación de origen/medio de pago (Efectivo, Transferencia, Cheque, Tarjeta, etc.).
           </p>
         </div>
         <button
@@ -128,6 +151,7 @@ export const ExpensesView: React.FC = () => {
             setProviderName('');
             setCategory('SUPERMERCADO');
             setType('Gasto de Caja / Varios (Supermercado, Kiosco, etc.)');
+            setPaymentMethod('EFECTIVO (Caja Chica)');
             setAmount('');
             setPaymentDate(new Date().toISOString().split('T')[0]);
             setShowModal(true);
@@ -139,17 +163,17 @@ export const ExpensesView: React.FC = () => {
         </button>
       </div>
 
-      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / ALMANAQUE (DESDE - HASTA) / CATEGORÍA */}
+      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / ALMANAQUE / CATEGORÍA / MEDIO DE PAGO */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
           {/* Buscar por Comercio / Detalle */}
           <div className="relative">
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar por Comercio / Proveedor / Detalle</label>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar por Comercio / Proveedor / Medio</label>
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-amber-400 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="Ej: Coto, Panadería, Kiosco, Usina, Alquiler..."
+                placeholder="Ej: Coto, Usina, Transferencia, Efectivo..."
                 value={searchProvider}
                 onChange={e => setSearchProvider(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-500 outline-none font-bold"
@@ -184,9 +208,24 @@ export const ExpensesView: React.FC = () => {
               ))}
             </select>
           </div>
+
+          {/* Filtrar por Medio de Pago */}
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Filtrar por Origen / Medio de Pago</label>
+            <select
+              value={filterPaymentMethod}
+              onChange={e => setFilterPaymentMethod(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium text-emerald-400"
+            >
+              <option value="ALL">Todos los Medios de Pago</option>
+              {allPaymentMethods.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {(searchProvider || startDate || endDate || filterCategory !== 'ALL') && (
+        {(searchProvider || startDate || endDate || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL') && (
           <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
             <span className="text-[11px] text-amber-400 font-semibold">Filtros activos</span>
             <button
@@ -195,6 +234,7 @@ export const ExpensesView: React.FC = () => {
                 setStartDate('');
                 setEndDate('');
                 setFilterCategory('ALL');
+                setFilterPaymentMethod('ALL');
               }}
               className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 font-medium"
             >
@@ -209,10 +249,10 @@ export const ExpensesView: React.FC = () => {
         <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-950/60">
           <div>
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              Listado de Gastos de Caja y Servicios Registrados
+              Listado de Gastos de Caja, Servicios y Origen de Pago
             </h3>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              {filteredExpenses.length} comprobantes / gastos en el periodo seleccionado.
+              {filteredExpenses.length} comprobantes / pagos en el periodo seleccionado.
             </p>
           </div>
           <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit flex items-center gap-1">
@@ -226,6 +266,7 @@ export const ExpensesView: React.FC = () => {
               <tr>
                 <th className="p-3">Fecha de Pago</th>
                 <th className="p-3">Proveedor / Comercio / Concepto</th>
+                <th className="p-3">Origen / Medio de Pago</th>
                 <th className="p-3">Categoría / Rubro</th>
                 <th className="p-3">Tipo de Gasto</th>
                 <th className="p-3">Monto Pagado</th>
@@ -238,6 +279,12 @@ export const ExpensesView: React.FC = () => {
                   <tr key={e.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="p-3 font-semibold text-white">{e.date || e.dueDate}</td>
                     <td className="p-3 font-bold text-amber-300 text-sm">{e.description}</td>
+                    <td className="p-3 font-semibold">
+                      <span className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 w-fit">
+                        <CreditCard className="w-3 h-3 text-emerald-400" />
+                        {e.paymentMethod || 'EFECTIVO (Caja Chica)'}
+                      </span>
+                    </td>
                     <td className="p-3">
                       <span className="bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px] border border-slate-700">
                         {e.category}
@@ -258,7 +305,7 @@ export const ExpensesView: React.FC = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500 italic text-xs">
+                  <td colSpan={7} className="p-6 text-center text-slate-500 italic text-xs">
                     No se encontraron gastos o servicios registrados con los filtros aplicados.
                   </td>
                 </tr>
@@ -278,7 +325,7 @@ export const ExpensesView: React.FC = () => {
             </div>
 
             <form onSubmit={handleAddExpense} className="space-y-3">
-              {/* Proveedor / Establecimiento con búsqueda o creación manual */}
+              {/* Proveedor / Establecimiento */}
               <div>
                 <SearchableCombobox
                   label="Proveedor / Comercio / Establecimiento"
@@ -291,7 +338,21 @@ export const ExpensesView: React.FC = () => {
                 />
               </div>
 
-              {/* Categoría y Tipo de Gasto con búsqueda y creación manual libre */}
+              {/* Origen / Medio de Pago */}
+              <div>
+                <SearchableCombobox
+                  label="Origen / Medio de Pago Utilizado"
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  options={DEFAULT_PAYMENT_METHODS}
+                  placeholder="Elegir o escribir medio de pago (Efectivo, Transferencia, Cheque)..."
+                  allowCustom={true}
+                  required={true}
+                  icon={<CreditCard className="w-3.5 h-3.5 text-emerald-400" />}
+                />
+              </div>
+
+              {/* Categoría y Tipo de Gasto */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <SearchableCombobox
@@ -299,7 +360,7 @@ export const ExpensesView: React.FC = () => {
                     value={category}
                     onChange={setCategory}
                     options={allCategories}
-                    placeholder="Escribir o buscar categoría..."
+                    placeholder="Escribir categoría..."
                     allowCustom={true}
                     required={true}
                   />
@@ -310,7 +371,7 @@ export const ExpensesView: React.FC = () => {
                     value={type}
                     onChange={setType}
                     options={DEFAULT_EXPENSE_TYPES}
-                    placeholder="Escribir tipo (ej. Varios)..."
+                    placeholder="Escribir tipo..."
                     allowCustom={true}
                     required={true}
                   />
@@ -353,7 +414,7 @@ export const ExpensesView: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
                 >
-                  Guardar Gasto
+                  Guardar Pago
                 </button>
               </div>
             </form>

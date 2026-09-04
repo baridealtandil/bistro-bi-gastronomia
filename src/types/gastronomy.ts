@@ -60,6 +60,7 @@ export interface Expense {
   type: string;
   description: string;
   amount: number;
+  paymentMethod?: string;
   dueDate?: string;
   status: 'PENDIENTE' | 'PAGADO';
 }

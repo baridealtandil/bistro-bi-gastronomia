@@ -123,10 +123,10 @@ const INITIAL_SUPPLIER_PAYMENTS: SupplierPayment[] = [
 ];
 
 const INITIAL_EXPENSES: Expense[] = [
-  { id: 'e1', date: '2026-09-01', category: 'ALQUILER', type: 'FIJO', description: 'Alquiler Salón Comercial', amount: 850000, dueDate: '2026-09-05', status: 'PAGADO' },
-  { id: 'e2', date: '2026-09-02', category: 'LUZ', type: 'SERVICIO', description: 'Factura Edenor / Edesur', amount: 195000, dueDate: '2026-09-12', status: 'PENDIENTE' },
-  { id: 'e3', date: '2026-09-02', category: 'GAS', type: 'SERVICIO', description: 'Metrogas / Gas Natural', amount: 82000, dueDate: '2026-09-14', status: 'PENDIENTE' },
-  { id: 'e4', date: '2026-09-03', category: 'SOFTWARE', type: 'FIJO', description: 'Abono Sistema POS Complementario', amount: 35000, dueDate: '2026-09-10', status: 'PAGADO' },
+  { id: 'e1', date: '2026-09-01', category: 'ALQUILER', type: 'FIJO', description: 'Alquiler Salón Comercial', amount: 850000, paymentMethod: 'TRANSFERENCIA BANCARIA', dueDate: '2026-09-01', status: 'PAGADO' },
+  { id: 'e2', date: '2026-09-02', category: 'LUZ', type: 'SERVICIO', description: 'Usina Popular de Electricidad', amount: 195000, paymentMethod: 'TRANSFERENCIA BANCARIA', dueDate: '2026-09-02', status: 'PAGADO' },
+  { id: 'e3', date: '2026-09-02', category: 'GAS', type: 'SERVICIO', description: 'Camuzzi Gas Pampeana', amount: 82000, paymentMethod: 'EFECTIVO (Caja Chica)', dueDate: '2026-09-02', status: 'PAGADO' },
+  { id: 'e4', date: '2026-09-03', category: 'SOFTWARE', type: 'FIJO', description: 'Abono Sistema POS / Fudo', amount: 35000, paymentMethod: 'TARJETA DE CRÉDITO', dueDate: '2026-09-03', status: 'PAGADO' },
 ];
 
 const INITIAL_CHECKS: Check[] = [
