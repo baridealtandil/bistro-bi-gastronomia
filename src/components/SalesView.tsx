@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Plus, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw } from 'lucide-react';
+import { Plus, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw, Wallet, CreditCard, Landmark, ArrowDownCircle } from 'lucide-react';
 import { Sale } from '../types/gastronomy';
 import { DateRangePicker } from './DateRangePicker';
 
 export const SalesView: React.FC = () => {
-  const { sales, addSale } = useGastronomy();
+  const { sales, addSale, expenses } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
 
   // Filtros de Ventas: Rango de Fechas (Calendario Unificado), Turno, Canal y Método de Pago
@@ -58,12 +58,37 @@ export const SalesView: React.FC = () => {
     return true;
   });
 
-  // CÁLCULO DINÁMICO DE KPIS SEGÚN LOS FILTROS SELECCIONADOS
+  // CÁLCULO DINÁMICO DE KPIS DE VENTAS SEGÚN LOS FILTROS SELECCIONADOS
   const periodMediodia = filteredSales.filter(s => s.shift === 'MEDIODIA').reduce((acc, s) => acc + s.netAmount, 0);
   const periodNoche = filteredSales.filter(s => s.shift === 'NOCHE').reduce((acc, s) => acc + s.netAmount, 0);
   const periodCovers = filteredSales.reduce((acc, s) => acc + (s.covers || 0), 0);
   const periodSalesNet = filteredSales.reduce((acc, s) => acc + s.netAmount, 0);
   const periodAverageTicket = periodCovers > 0 ? periodSalesNet / periodCovers : 0;
+
+  // CÁLCULO DE CAJA MAYOR Y MERCADOPAGO / BANCOS
+  const periodCashSales = filteredSales.filter(s => s.paymentMethod === 'EFECTIVO').reduce((acc, s) => acc + s.netAmount, 0);
+  const periodDigitalSales = filteredSales.filter(s => s.paymentMethod !== 'EFECTIVO').reduce((acc, s) => acc + s.netAmount, 0);
+
+  // Egresos acumulados por medio de pago
+  const periodCashExpenses = expenses.filter(e => {
+    const expDate = e.date || e.dueDate || '';
+    if (startDate && expDate < startDate) return false;
+    if (endDate && expDate > endDate) return false;
+    const pm = (e.paymentMethod || '').toUpperCase();
+    return pm.includes('EFECTIVO') || pm.includes('CAJA CHICA');
+  }).reduce((acc, e) => acc + e.amount, 0);
+
+  const periodDigitalExpenses = expenses.filter(e => {
+    const expDate = e.date || e.dueDate || '';
+    if (startDate && expDate < startDate) return false;
+    if (endDate && expDate > endDate) return false;
+    const pm = (e.paymentMethod || '').toUpperCase();
+    return pm.includes('TRANSFERENCIA') || pm.includes('MERCADO PAGO') || pm.includes('TARJETA') || pm.includes('DÉBITO') || pm.includes('DIGITAL');
+  }).reduce((acc, e) => acc + e.amount, 0);
+
+  // Saldos Netos Disponibles en Caja Mayor y MercadoPago/Banco
+  const cajaMayorBalance = periodCashSales - periodCashExpenses;
+  const mercadoPagoBalance = periodDigitalSales - periodDigitalExpenses;
 
   return (
     <div className="space-y-6 pb-12">
@@ -71,10 +96,10 @@ export const SalesView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            Ventas por Turno (Mediodía / Noche) y Cubiertos
+            Control de Ventas, Caja Mayor y MercadoPago
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Filtra por período, turno, canal o medio de pago para ver los indicadores dinámicos.
+            Visualiza ingresos en efectivo, cobros con tarjeta/MercadoPago y el saldo neto de caja descontando pagos.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -85,6 +110,57 @@ export const SalesView: React.FC = () => {
             <Plus className="w-4 h-4" />
             + Registrar Venta
           </button>
+        </div>
+      </div>
+
+      {/* TARJETAS FINANCIERAS: CAJA MAYOR Y MERCADOPAGO/BANCOS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 1. Ventas en Efectivo */}
+        <div className="bg-slate-900 border border-emerald-500/30 p-4 rounded-2xl space-y-2 relative overflow-hidden bg-emerald-950/10">
+          <div className="flex items-center justify-between text-xs text-emerald-400 font-bold">
+            <span className="flex items-center gap-1.5"><Wallet className="w-4 h-4" /> Ventas Efectivo</span>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Ingresos</span>
+          </div>
+          <div className="text-2xl font-black text-emerald-400">${periodCashSales.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-400">Total cobrado en efectivo</div>
+        </div>
+
+        {/* 2. Ventas MercadoPago / Tarjetas */}
+        <div className="bg-slate-900 border border-blue-500/30 p-4 rounded-2xl space-y-2 relative overflow-hidden bg-blue-950/10">
+          <div className="flex items-center justify-between text-xs text-blue-400 font-bold">
+            <span className="flex items-center gap-1.5"><CreditCard className="w-4 h-4" /> Ventas MercadoPago / Tarjeta</span>
+            <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold">Digital</span>
+          </div>
+          <div className="text-2xl font-black text-blue-400">${periodDigitalSales.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-400">MercadoPago, QR, Débito, Crédito</div>
+        </div>
+
+        {/* 3. Caja Mayor (Efectivo Disponible Descontando Pagos) */}
+        <div className="bg-slate-900 border border-amber-500/40 p-4 rounded-2xl space-y-2 relative overflow-hidden bg-amber-950/10">
+          <div className="flex items-center justify-between text-xs text-amber-400 font-bold">
+            <span className="flex items-center gap-1.5"><Landmark className="w-4 h-4" /> Caja Mayor (Disponible)</span>
+            <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">Saldo Neto</span>
+          </div>
+          <div className={`text-2xl font-black ${cajaMayorBalance >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+            ${cajaMayorBalance.toLocaleString('es-AR')}
+          </div>
+          <div className="text-[10px] text-slate-400 flex items-center gap-1">
+            <ArrowDownCircle className="w-3 h-3 text-rose-400" /> Descontados ${periodCashExpenses.toLocaleString('es-AR')} en pagos
+          </div>
+        </div>
+
+        {/* 4. Cuenta MercadoPago / Banco (Disponible Descontando Pagos) */}
+        <div className="bg-slate-900 border border-indigo-500/40 p-4 rounded-2xl space-y-2 relative overflow-hidden bg-indigo-950/10">
+          <div className="flex items-center justify-between text-xs text-indigo-400 font-bold">
+            <span className="flex items-center gap-1.5"><Landmark className="w-4 h-4" /> Saldo MercadoPago / Banco</span>
+            <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded font-bold">Cuenta Digital</span>
+          </div>
+          <div className={`text-2xl font-black ${mercadoPagoBalance >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
+            ${mercadoPagoBalance.toLocaleString('es-AR')}
+          </div>
+          <div className="text-[10px] text-slate-400 flex items-center gap-1">
+            <ArrowDownCircle className="w-3 h-3 text-rose-400" /> Descontados ${periodDigitalExpenses.toLocaleString('es-AR')} por transf.
+          </div>
         </div>
       </div>
 
@@ -173,7 +249,7 @@ export const SalesView: React.FC = () => {
         </div>
       </div>
 
-      {/* TARJETAS KPI DE RESUMEN QUE SE ACTUALIZAN DINÁMICAMENTE CON EL ALMANAQUE */}
+      {/* TARJETAS OPERATIVAS (MEDIODÍA / NOCHE / CUBIERTOS / TICKET PROMEDIO) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">

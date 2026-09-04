@@ -37,7 +37,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
     { id: 'dashboard', label: 'Dashboard BI', icon: LayoutDashboard, adminOnly: true },
     { id: 'ventas', label: 'Ventas', icon: TrendingUp, adminOnly: false },
     { id: 'compras', label: 'Proveedores', icon: Truck, adminOnly: false },
-    { id: 'gastos', label: 'Gastos/Servicios', icon: Receipt, adminOnly: false },
+    { id: 'gastos', label: 'Pagos', icon: Receipt, adminOnly: false },
     { id: 'cheques', label: 'Cheques', icon: CheckSquare, adminOnly: false },
     { id: 'empleados', label: 'Empleados', icon: Users, adminOnly: true },
     { id: 'platos', label: 'Escandallos', icon: UtensilsCrossed, adminOnly: true },
