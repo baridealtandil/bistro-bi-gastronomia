@@ -46,6 +46,7 @@ export const SuppliersView: React.FC = () => {
 
   // Form State Compra
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id || '');
+  const [purchaseSupplierName, setPurchaseSupplierName] = useState(suppliers[0]?.name || '');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -132,11 +133,38 @@ export const SuppliersView: React.FC = () => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
 
-    const targetSup = suppliers.find(s => s.id === supplierId) || suppliers[0];
+    let targetSup = suppliers.find(
+      s => s.name.toLowerCase().trim() === (purchaseSupplierName || suppliers[0]?.name || '').toLowerCase().trim()
+    );
+
+    if (!targetSup && purchaseSupplierName.trim()) {
+      const newSupName = purchaseSupplierName.trim();
+      addSupplier({
+        name: newSupName,
+        cuit: '30-00000000-0',
+        category: 'Varios & Gastos Generales',
+        phone: '11-0000-0000',
+        email: '',
+        paymentTermDays: 15
+      });
+      targetSup = {
+        id: `sup-${Date.now()}`,
+        name: newSupName,
+        cuit: '30-00000000-0',
+        category: 'Varios & Gastos Generales',
+        phone: '11-0000-0000',
+        email: '',
+        paymentTermDays: 15,
+        balanceDue: 0
+      };
+    }
+
+    const finalSupplierId = targetSup ? targetSup.id : (suppliers[0]?.id || 'sup1');
+    const finalSupplierName = targetSup ? targetSup.name : (suppliers[0]?.name || 'Proveedor General');
 
     addPurchase({
-      supplierId: targetSup.id,
-      supplierName: targetSup.name,
+      supplierId: finalSupplierId,
+      supplierName: finalSupplierName,
       invoiceNumber: invoiceNumber || `FC-${Date.now().toString().slice(-6)}`,
       date,
       dueDate: dueDate || date,
@@ -494,16 +522,15 @@ export const SuppliersView: React.FC = () => {
 
             <form onSubmit={handleAddPurchase} className="space-y-3 pt-2">
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Proveedor</label>
-                <select
-                  value={supplierId}
-                  onChange={e => setSupplierId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
-                >
-                  {suppliers.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.category})</option>
-                  ))}
-                </select>
+                <SearchableCombobox
+                  label="Proveedor"
+                  value={purchaseSupplierName || (suppliers[0]?.name ?? '')}
+                  onChange={setPurchaseSupplierName}
+                  options={suppliers.map(s => s.name)}
+                  placeholder="Buscar o seleccionar proveedor..."
+                  allowCustom={true}
+                  required={true}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
