@@ -209,7 +209,13 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (savedPayments) setSupplierPayments(JSON.parse(savedPayments));
 
       const savedExpenses = localStorage.getItem('gastro_expenses');
-      if (savedExpenses) setExpenses(JSON.parse(savedExpenses));
+      if (savedExpenses) {
+        const parsed: Expense[] = JSON.parse(savedExpenses);
+        setExpenses(parsed.map(e => ({
+          ...e,
+          paymentMethod: e.paymentMethod || (e.category === 'LUZ' || e.category === 'ALQUILER' || e.category === 'SOFTWARE' ? 'TRANSFERENCIA BANCARIA' : 'EFECTIVO (Caja Chica)')
+        })));
+      }
 
       const savedChecks = localStorage.getItem('gastro_checks');
       if (savedChecks) setChecks(JSON.parse(savedChecks));
