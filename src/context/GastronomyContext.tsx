@@ -120,7 +120,12 @@ const INITIAL_EXPENSES: Expense[] = [
 
 const INITIAL_CHECKS: Check[] = [
   { id: 'c1', type: 'PROPIO', number: 'CHK-009812', bank: 'Banco Galicia', issuerOrRecipient: 'Distribuidora Carnes del Sur', issueDate: '2026-09-01', dueDate: '2026-09-08', amount: 250000, status: 'PENDIENTE', notes: 'Pago a cuenta factura de carne' },
-  { id: 'c2', type: 'TERCERO', number: 'CHK-441029', bank: 'BBVA', issuerOrRecipient: 'Evento Eventos & Catering S.A.', issueDate: '2026-08-28', dueDate: '2026-09-15', amount: 180000, status: 'PENDIENTE', notes: 'Se usará para endosar a proveedor de bebidas' },
+  { id: 'c2', type: 'TERCERO', number: 'CHK-441029', bank: 'BBVA', issuerOrRecipient: 'Verdulería Central BAZ', issueDate: '2026-08-28', dueDate: '2026-09-22', amount: 180000, status: 'ENDOSADO', notes: 'Endosado como pago a proveedor de verduras' },
+  { id: 'c3', type: 'PROPIO', number: 'CHK-010452', bank: 'Santander', issuerOrRecipient: 'Distribuidora Carnes del Sur', issueDate: '2026-09-02', dueDate: '2026-10-15', amount: 420000, status: 'PENDIENTE', notes: 'Diferido compra lomo y ojo de bife' },
+  { id: 'c4', type: 'PROPIO', number: 'CHK-010453', bank: 'Banco Galicia', issuerOrRecipient: 'Bebidas & Licores Express', issueDate: '2026-09-03', dueDate: '2026-10-28', amount: 310000, status: 'PENDIENTE', notes: 'Diferido pedido cerveza artesanal' },
+  { id: 'c5', type: 'PROPIO', number: 'CHK-011890', bank: 'Macro', issuerOrRecipient: 'Distribuidora Carnes del Sur', issueDate: '2026-09-04', dueDate: '2026-11-10', amount: 580000, status: 'PENDIENTE', notes: 'Diferido reposición frigorífica' },
+  { id: 'c6', type: 'PROPIO', number: 'CHK-011891', bank: 'BBVA', issuerOrRecipient: 'Lácteos La Serenísima', issueDate: '2026-09-04', dueDate: '2026-11-25', amount: 290000, status: 'PENDIENTE', notes: 'Diferido provisión quesos y crema' },
+  { id: 'c7', type: 'PROPIO', number: 'CHK-012301', bank: 'Banco Galicia', issuerOrRecipient: 'Distribuidora Carnes del Sur', issueDate: '2026-09-04', dueDate: '2026-12-12', amount: 640000, status: 'PENDIENTE', notes: 'Diferido fiesta de fin de año' },
 ];
 
 const INITIAL_EMPLOYEES: Employee[] = [

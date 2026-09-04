@@ -2,14 +2,32 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { CheckSquare, Plus, AlertCircle, ArrowDownLeft, ArrowUpRight, Filter } from 'lucide-react';
+import {
+  CheckSquare,
+  Plus,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Calendar,
+  Filter,
+  Search,
+  Building,
+  DollarSign
+} from 'lucide-react';
 import { Check as CheckType } from '../types/gastronomy';
 
 export const ChecksView: React.FC = () => {
   const { checks, addCheck } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
-  const [filterType, setFilterType] = useState<'ALL' | 'PROPIO' | 'TERCERO'>('ALL');
 
+  // Estados de Filtros Avanzados
+  const [filterType, setFilterType] = useState<'ALL' | 'PROPIO' | 'TERCERO'>('ALL');
+  const [filterBank, setFilterBank] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<string>('ALL');
+  const [searchSupplier, setSearchSupplier] = useState<string>('');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
+  // Form State para Nuevo Cheque
   const [type, setType] = useState<CheckType['type']>('PROPIO');
   const [number, setNumber] = useState('');
   const [bank, setBank] = useState('Banco Galicia');
@@ -40,7 +58,40 @@ export const ChecksView: React.FC = () => {
     setShowModal(false);
   };
 
-  const filteredChecks = checks.filter(c => filterType === 'ALL' || c.type === filterType);
+  // Bancos únicos presentes
+  const uniqueBanks = Array.from(new Set(checks.map(c => c.bank)));
+
+  // Cálculos de Totales por Mes para Cheques Propios (Próximos 90-120 días)
+  const calculateMonthlyTotal = (yearMonthPrefix: string) => {
+    return checks
+      .filter(c => c.type === 'PROPIO' && c.dueDate.startsWith(yearMonthPrefix))
+      .reduce((acc, c) => acc + c.amount, 0);
+  };
+
+  const septTotal = calculateMonthlyTotal('2026-09');
+  const octTotal = calculateMonthlyTotal('2026-10');
+  const novTotal = calculateMonthlyTotal('2026-11');
+  const dicTotal = calculateMonthlyTotal('2026-12');
+  const total90Days = septTotal + octTotal + novTotal + dicTotal;
+
+  // Lógica de Filtrado de la Tabla
+  const filteredChecks = checks.filter(c => {
+    // Filtro por Tipo
+    if (filterType !== 'ALL' && c.type !== filterType) return false;
+    // Filtro por Banco
+    if (filterBank !== 'ALL' && c.bank !== filterBank) return false;
+    // Filtro por Estado
+    if (filterStatus !== 'ALL' && c.status !== filterStatus) return false;
+    // Filtro por Proveedor / Destinatario
+    if (searchSupplier && !c.issuerOrRecipient.toLowerCase().includes(searchSupplier.toLowerCase()) && !c.number.toLowerCase().includes(searchSupplier.toLowerCase())) {
+      return false;
+    }
+    // Filtro por Rango de Fechas
+    if (startDate && c.dueDate < startDate) return false;
+    if (endDate && c.dueDate > endDate) return false;
+
+    return true;
+  });
 
   return (
     <div className="space-y-6 pb-12">
@@ -48,10 +99,10 @@ export const ChecksView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            Chequera y Tesorería (Propios y Terceros)
+            Control Completo de Cheques Propios Emitidos y Diferidos
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Visualiza todos los cheques propios emitidos a proveedores y de terceros endosados o cobrados.
+            Panorama mensual de vencimientos a 90 días, filtros por banco, fecha y proveedor.
           </p>
         </div>
         <button
@@ -63,85 +114,212 @@ export const ChecksView: React.FC = () => {
         </button>
       </div>
 
-      {/* Filtros rápidos */}
-      <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800 p-2 rounded-xl w-fit">
-        <button
-          onClick={() => setFilterType('ALL')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            filterType === 'ALL' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          Todos ({checks.length})
-        </button>
-        <button
-          onClick={() => setFilterType('PROPIO')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            filterType === 'PROPIO' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          Propios ({checks.filter(c => c.type === 'PROPIO').length})
-        </button>
-        <button
-          onClick={() => setFilterType('TERCERO')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            filterType === 'TERCERO' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
-          }`}
-        >
-          De Terceros ({checks.filter(c => c.type === 'TERCERO').length})
-        </button>
+      {/* TARJETAS DE RESUMEN MENSUAL EN $ (PRÓXIMOS 90 DÍAS) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-1">
+          <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+            <Calendar className="w-3 h-3 text-amber-400" /> Septiembre
+          </div>
+          <div className="text-lg font-black text-white">${septTotal.toLocaleString('es-AR')}</div>
+          <div className="text-[9px] text-slate-400">Vencimientos Mes Corriente</div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-1">
+          <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
+            <Calendar className="w-3 h-3 text-blue-400" /> Octubre
+          </div>
+          <div className="text-lg font-black text-white">${octTotal.toLocaleString('es-AR')}</div>
+          <div className="text-[9px] text-slate-400">Vencimientos Próximo Mes</div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-1">
+          <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+            <Calendar className="w-3 h-3 text-indigo-400" /> Noviembre
+          </div>
+          <div className="text-lg font-black text-white">${novTotal.toLocaleString('es-AR')}</div>
+          <div className="text-[9px] text-slate-400">Vencimientos en 60 días</div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-1">
+          <div className="text-[10px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1">
+            <Calendar className="w-3 h-3 text-violet-400" /> Diciembre
+          </div>
+          <div className="text-lg font-black text-white">${dicTotal.toLocaleString('es-AR')}</div>
+          <div className="text-[9px] text-slate-400">Vencimientos en 90 días</div>
+        </div>
+
+        <div className="col-span-2 sm:col-span-1 bg-slate-900 border border-amber-500/30 p-3.5 rounded-2xl space-y-1 bg-amber-500/5">
+          <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
+            <span>Total 90 Días</span>
+            <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+          </div>
+          <div className="text-lg font-black text-amber-400">${total90Days.toLocaleString('es-AR')}</div>
+          <div className="text-[9px] text-slate-400">Compromisos Totales</div>
+        </div>
       </div>
 
-      {/* Grilla de Cheques */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredChecks.map(c => (
-          <div key={c.id} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {c.type === 'PROPIO' ? (
-                  <span className="flex items-center gap-1 text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded font-bold">
-                    <ArrowUpRight className="w-3 h-3" /> PROPIO EMITIDO
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">
-                    <ArrowDownLeft className="w-3 h-3" /> DE TERCERO
-                  </span>
-                )}
-                <span className="text-xs font-semibold text-white">{c.bank}</span>
-              </div>
-              <span className="text-xs font-bold text-amber-400">N° {c.number}</span>
-            </div>
+      {/* BARRA DE FILTROS AVANZADOS */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
+        <div className="text-xs font-bold text-slate-300 flex items-center gap-2 border-b border-slate-800 pb-2">
+          <Filter className="w-4 h-4 text-amber-400" />
+          Filtros de Búsqueda y Rango de Fechas
+        </div>
 
-            <div className="flex items-center justify-between text-xs border-y border-slate-800/80 py-2">
-              <div>
-                <div className="text-[10px] text-slate-400">{c.type === 'PROPIO' ? 'Destinatario (Proveedor):' : 'Titular / Origen:'}</div>
-                <div className="font-bold text-slate-200">{c.issuerOrRecipient}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-[10px] text-slate-400">Fecha Vencimiento:</div>
-                <div className="font-bold text-amber-400">{c.dueDate}</div>
-              </div>
-            </div>
-
-            {c.notes && (
-              <div className="text-[10px] text-slate-400 italic bg-slate-950 p-2 rounded-lg border border-slate-800/60">
-                📌 {c.notes}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-1">
-              <div className="text-lg font-black text-white">${c.amount.toLocaleString('es-AR')}</div>
-              <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-                c.status === 'PENDIENTE'
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                  : c.status === 'ENDOSADO'
-                  ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-              }`}>
-                {c.status}
-              </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+          {/* Buscador por Proveedor / Número */}
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1">Buscar Proveedor o N°</label>
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+              <input
+                type="text"
+                placeholder="Nombre o N° Cheque..."
+                value={searchSupplier}
+                onChange={e => setSearchSupplier(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-2 py-2 text-xs text-white focus:border-amber-500 outline-none"
+              />
             </div>
           </div>
-        ))}
+
+          {/* Filtro Banco */}
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1">Filtrar por Banco</label>
+            <select
+              value={filterBank}
+              onChange={e => setFilterBank(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none"
+            >
+              <option value="ALL">Todos los Bancos</option>
+              {uniqueBanks.map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Tipo */}
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1">Tipo de Cheque</label>
+            <select
+              value={filterType}
+              onChange={e => setFilterType(e.target.value as any)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none font-semibold text-amber-400"
+            >
+              <option value="ALL">Todos los Tipos</option>
+              <option value="PROPIO">Propios Emitidos</option>
+              <option value="TERCERO">De Terceros</option>
+            </select>
+          </div>
+
+          {/* Fecha Desde */}
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1">Fecha Venc. Desde</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none"
+            />
+          </div>
+
+          {/* Fecha Hasta */}
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1">Fecha Venc. Hasta</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={e => setEndDate(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:border-amber-500 outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Botón reset filtros si hay alguno aplicado */}
+        {(filterBank !== 'ALL' || filterType !== 'ALL' || searchSupplier || startDate || endDate) && (
+          <div className="flex items-center justify-end pt-1">
+            <button
+              onClick={() => {
+                setFilterBank('ALL');
+                setFilterType('ALL');
+                setFilterStatus('ALL');
+                setSearchSupplier('');
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="text-[11px] text-amber-400 hover:underline font-semibold"
+            >
+              Limpiar todos los filtros
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* TABLA EN FORMATO LISTADO COMPLETO DE CHEQUES */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white">Listado General de Cheques Registrados</h3>
+          <span className="text-xs text-slate-400 font-semibold">{filteredChecks.length} cheques listados</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-300">
+            <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+              <tr>
+                <th className="p-3">Tipo</th>
+                <th className="p-3">N° Cheque</th>
+                <th className="p-3">Banco</th>
+                <th className="p-3">Proveedor / Destinatario</th>
+                <th className="p-3">Fecha Emisión</th>
+                <th className="p-3">Fecha Vencimiento</th>
+                <th className="p-3">Monto</th>
+                <th className="p-3">Estado</th>
+                <th className="p-3">Notas / Detalle</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {filteredChecks.length > 0 ? (
+                filteredChecks.map(c => (
+                  <tr key={c.id} className="hover:bg-slate-800/40 transition-colors">
+                    <td className="p-3">
+                      {c.type === 'PROPIO' ? (
+                        <span className="flex items-center gap-1 bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
+                          <ArrowUpRight className="w-3 h-3" /> PROPIO
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
+                          <ArrowDownLeft className="w-3 h-3" /> TERCERO
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 font-mono font-bold text-white whitespace-nowrap">{c.number}</td>
+                    <td className="p-3 text-slate-200 font-medium whitespace-nowrap">{c.bank}</td>
+                    <td className="p-3 text-slate-100 font-bold">{c.issuerOrRecipient}</td>
+                    <td className="p-3 text-slate-400 whitespace-nowrap">{c.issueDate}</td>
+                    <td className="p-3 font-bold text-amber-400 whitespace-nowrap">{c.dueDate}</td>
+                    <td className="p-3 text-white font-black text-sm">${c.amount.toLocaleString('es-AR')}</td>
+                    <td className="p-3 whitespace-nowrap">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        c.status === 'PENDIENTE'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          : c.status === 'ENDOSADO'
+                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      }`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td className="p-3 text-slate-400 max-w-xs truncate">{c.notes || '-'}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={9} className="p-6 text-center text-slate-500 italic text-xs">
+                    No se encontraron cheques que coincidan con los filtros aplicados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal Carga Cheque Manual */}
