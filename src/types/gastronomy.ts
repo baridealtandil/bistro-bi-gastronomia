@@ -56,7 +56,7 @@ export interface SupplierPayment {
 export interface Expense {
   id: string;
   date: string;
-  category: 'ALQUILER' | 'LUZ' | 'GAS' | 'AGUA' | 'INTERNET' | 'SOFTWARE' | 'MANTENIMIENTO' | 'MARKETING' | 'IMPREVISTOS';
+  category: string;
   type: 'FIJO' | 'VARIABLE' | 'SERVICIO';
   description: string;
   amount: number;
