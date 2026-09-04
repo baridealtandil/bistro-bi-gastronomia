@@ -14,6 +14,8 @@ import {
   Receipt,
   CheckSquare,
   Search,
+  Calendar,
+  Gift,
   ArrowRight
 } from 'lucide-react';
 import { SupplierPayment } from '../types/gastronomy';
@@ -38,6 +40,9 @@ export const SuppliersView: React.FC = () => {
   // Buscador de proveedores en el modal de pago
   const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
 
+  // Buscador de proveedores en la pestaña "Base de Proveedores"
+  const [supplierListSearch, setSupplierListSearch] = useState('');
+
   // Form State Compra
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id || '');
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -51,6 +56,7 @@ export const SuppliersView: React.FC = () => {
   const [supName, setSupName] = useState('');
   const [supCuit, setSupCuit] = useState('');
   const [supCategory, setSupCategory] = useState('Carnes');
+  const [supPhone, setSupPhone] = useState('');
 
   // Form State Pago a Proveedor
   const [paySupplierId, setPaySupplierId] = useState(suppliers[0]?.id || '');
@@ -61,6 +67,17 @@ export const SuppliersView: React.FC = () => {
   const [checkBank, setCheckBank] = useState('Banco Galicia');
   const [checkDueDate, setCheckDueDate] = useState('');
   const [payNotes, setPayNotes] = useState('');
+
+  // CÁLCULO DE DEUDAS POR MES BASADAS EN LA FECHA DE LA FACTURA / REMITO
+  const calculateDebtByMonth = (yearMonthPrefix: string) => {
+    return purchases
+      .filter(p => p.status !== 'PAGADO' && p.date.startsWith(yearMonthPrefix))
+      .reduce((acc, p) => acc + (p.amount - (p.paidAmount || 0)), 0);
+  };
+
+  const augustDebt = calculateDebtByMonth('2026-08'); // Meses anteriores (Agosto)
+  const septemberDebt = calculateDebtByMonth('2026-09'); // Mes Corriente (Septiembre)
+  const octoberDebt = calculateDebtByMonth('2026-10'); // Próximo Mes (Octubre)
 
   const handleSimulateOcr = () => {
     setIsScanningOcr(true);
@@ -107,13 +124,14 @@ export const SuppliersView: React.FC = () => {
       name: supName,
       cuit: supCuit || '30-00000000-0',
       category: supCategory,
-      phone: '',
+      phone: supPhone || '11-0000-0000',
       email: '',
       paymentTermDays: 15
     });
 
     setSupName('');
     setSupCuit('');
+    setSupPhone('');
     setShowSupplierModal(false);
   };
 
@@ -135,7 +153,7 @@ export const SuppliersView: React.FC = () => {
       checkNumber,
       bank: checkBank,
       dueDate: checkDueDate,
-      notes: payNotes
+      notes: payMethod === 'BONIFICACION_ACUERDO' ? `[Acuerdo / Bonificación Comercial] ${payNotes}` : payNotes
     });
 
     setPayAmount('');
@@ -145,7 +163,16 @@ export const SuppliersView: React.FC = () => {
     setShowPaymentModal(false);
   };
 
-  // Filtrado dinámico de proveedores por búsqueda (Nombre o CUIT)
+  // Proveedores ordenados alfabéticamente y filtrados por el buscador
+  const sortedAndFilteredSuppliers = [...suppliers]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .filter(s =>
+      s.name.toLowerCase().includes(supplierListSearch.toLowerCase()) ||
+      s.cuit.includes(supplierListSearch) ||
+      s.category.toLowerCase().includes(supplierListSearch.toLowerCase())
+    );
+
+  // Buscador de proveedores en el modal de pago
   const filteredSuppliersForPayment = suppliers.filter(s =>
     s.name.toLowerCase().includes(supplierSearchQuery.toLowerCase()) ||
     s.cuit.includes(supplierSearchQuery)
@@ -164,13 +191,20 @@ export const SuppliersView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            Gestión de Proveedores, Compras y Pagos
+            Gestión de Proveedores, Compras y Bonificaciones
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Imputación de pagos por cheque, transferencia o efectivo descontados automáticamente de facturas.
+            Deudas calculadas por fecha de factura, bonificaciones comerciales y listado en orden alfabético.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setShowSupplierModal(true)}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-700 transition-all"
+          >
+            <Truck className="w-4 h-4 text-amber-400" />
+            + Nuevo Proveedor
+          </button>
           <button
             onClick={() => {
               setPaySupplierId(suppliers[0]?.id || '');
@@ -180,7 +214,7 @@ export const SuppliersView: React.FC = () => {
             className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-lg transition-all"
           >
             <CreditCard className="w-4 h-4" />
-            + Registrar Pago
+            + Registrar Pago / Bonificación
           </button>
           <button
             onClick={() => setShowPurchaseModal(true)}
@@ -192,28 +226,39 @@ export const SuppliersView: React.FC = () => {
         </div>
       </div>
 
-      {/* Tarjetas de Resumen */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-          <div className="text-xs text-slate-400 font-medium">Deuda Total Acumulada</div>
-          <div className="text-2xl font-black text-rose-400 mt-1">${totalSupplierDebt.toLocaleString('es-AR')}</div>
-          <div className="text-[10px] text-slate-400">Sumatoria de saldos pendientes con proveedores</div>
+      {/* TARJETAS SUPERIORES DE DEUDAS POR MES DE FACTURA */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-slate-900 border border-rose-900/60 p-4 rounded-2xl space-y-1 bg-rose-950/20">
+          <div className="text-xs font-bold text-rose-400 flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" /> Deuda Meses Anteriores (Agosto)
+          </div>
+          <div className="text-xl font-black text-rose-400">${augustDebt.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-400">Facturas impagas de meses previos</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-          <div className="text-xs text-slate-400 font-medium">Facturas por Pagar</div>
-          <div className="text-2xl font-black text-amber-400 mt-1">
-            {purchases.filter(p => p.status !== 'PAGADO').length} facturas
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
+          <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" /> Deuda Mes Corriente (Septiembre)
           </div>
-          <div className="text-[10px] text-slate-400">Facturas pendientes o parciales</div>
+          <div className="text-xl font-black text-white">${septemberDebt.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-400">Facturas emitidas este mes</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
-          <div className="text-xs text-slate-400 font-medium">Pagos Registrados</div>
-          <div className="text-2xl font-black text-emerald-400 mt-1">
-            ${supplierPayments.reduce((acc, p) => acc + p.amount, 0).toLocaleString('es-AR')}
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
+          <div className="text-xs font-bold text-blue-400 flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" /> Deuda Próximos Meses (Octubre)
           </div>
-          <div className="text-[10px] text-slate-400">{supplierPayments.length} pagos realizados este mes</div>
+          <div className="text-xl font-black text-white">${octoberDebt.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-400">Vencimientos diferidos</div>
+        </div>
+
+        <div className="bg-slate-900 border border-amber-500/30 p-4 rounded-2xl space-y-1 bg-amber-500/5">
+          <div className="text-xs font-bold text-amber-400 flex items-center justify-between">
+            <span>Deuda Total Acumulada</span>
+            <DollarSign className="w-4 h-4 text-amber-400" />
+          </div>
+          <div className="text-xl font-black text-amber-400">${totalSupplierDebt.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-400">Sumatoria general de saldos</div>
         </div>
       </div>
 
@@ -233,7 +278,7 @@ export const SuppliersView: React.FC = () => {
             activeTab === 'pagos' ? 'border-amber-500 text-amber-400' : 'border-transparent text-slate-400 hover:text-white'
           }`}
         >
-          Pagos Realizados ({supplierPayments.length})
+          Pagos & Bonificaciones ({supplierPayments.length})
         </button>
         <button
           onClick={() => setActiveTab('proveedores')}
@@ -259,10 +304,10 @@ export const SuppliersView: React.FC = () => {
                 <tr>
                   <th className="p-3">Factura #</th>
                   <th className="p-3">Proveedor</th>
-                  <th className="p-3">Fecha</th>
+                  <th className="p-3">Fecha Factura</th>
                   <th className="p-3">Vencimiento</th>
                   <th className="p-3">Monto Total</th>
-                  <th className="p-3">Monto Pagado</th>
+                  <th className="p-3">Monto Pagado / Desc.</th>
                   <th className="p-3">Saldo Restante</th>
                   <th className="p-3">Estado</th>
                 </tr>
@@ -275,7 +320,7 @@ export const SuppliersView: React.FC = () => {
                     <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="p-3 font-medium text-white whitespace-nowrap">{p.invoiceNumber}</td>
                       <td className="p-3 text-slate-300 font-medium">{p.supplierName}</td>
-                      <td className="p-3 text-slate-400">{p.date}</td>
+                      <td className="p-3 font-semibold text-amber-300">{p.date}</td>
                       <td className="p-3 text-slate-400">{p.dueDate}</td>
                       <td className="p-3 text-white font-bold">${p.amount.toLocaleString('es-AR')}</td>
                       <td className="p-3 text-emerald-400 font-semibold">${paid.toLocaleString('es-AR')}</td>
@@ -300,12 +345,12 @@ export const SuppliersView: React.FC = () => {
         </div>
       )}
 
-      {/* VISTA 2: Pagos Realizados a Proveedores */}
+      {/* VISTA 2: Pagos Realizados y Bonificaciones */}
       {activeTab === 'pagos' && (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
           <div className="p-4 border-b border-slate-800 flex items-center justify-between">
             <h3 className="text-sm font-bold text-white">Histórico de Pagos e Imputaciones a Proveedores</h3>
-            <span className="text-xs text-slate-400">{supplierPayments.length} pagos registrados</span>
+            <span className="text-xs text-slate-400">{supplierPayments.length} registros</span>
           </div>
 
           <div className="overflow-x-auto">
@@ -315,9 +360,9 @@ export const SuppliersView: React.FC = () => {
                   <th className="p-3">Fecha</th>
                   <th className="p-3">Proveedor</th>
                   <th className="p-3">Factura Imputada</th>
-                  <th className="p-3">Medio de Pago</th>
-                  <th className="p-3">Monto Pagado</th>
-                  <th className="p-3">Detalle / Cheque</th>
+                  <th className="p-3">Medio de Pago / Tipo</th>
+                  <th className="p-3">Monto Descontado</th>
+                  <th className="p-3">Detalle / Cheque / Acuerdo</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -327,9 +372,15 @@ export const SuppliersView: React.FC = () => {
                     <td className="p-3 text-slate-200 font-bold">{pay.supplierName}</td>
                     <td className="p-3 text-slate-300 font-mono">{pay.invoiceNumber || 'Pago General a Cuenta'}</td>
                     <td className="p-3">
-                      <span className="bg-slate-800 text-amber-400 border border-slate-700 px-2 py-0.5 rounded font-bold text-[10px]">
-                        {pay.paymentMethod}
-                      </span>
+                      {pay.paymentMethod === 'BONIFICACION_ACUERDO' ? (
+                        <span className="bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold text-[10px] flex items-center gap-1 w-fit">
+                          <Gift className="w-3 h-3" /> BONIFICACIÓN / ACUERDO
+                        </span>
+                      ) : (
+                        <span className="bg-slate-800 text-amber-400 border border-slate-700 px-2 py-0.5 rounded font-bold text-[10px]">
+                          {pay.paymentMethod}
+                        </span>
+                      )}
                     </td>
                     <td className="p-3 text-emerald-400 font-black">${pay.amount.toLocaleString('es-AR')}</td>
                     <td className="p-3 text-slate-400">
@@ -347,35 +398,93 @@ export const SuppliersView: React.FC = () => {
         </div>
       )}
 
-      {/* VISTA 3: Base de Proveedores */}
+      {/* VISTA 3: BASE DE PROVEEDORES EN LISTADO ALFABÉTICO CON BUSCADOR */}
       {activeTab === 'proveedores' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {suppliers.map(sup => (
-            <div key={sup.id} className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                  {sup.category}
-                </span>
-                <span className="text-[10px] text-slate-400">CUIT: {sup.cuit}</span>
-              </div>
-              <h3 className="font-bold text-white text-sm">{sup.name}</h3>
-              <div className="flex items-center justify-between pt-2 text-xs border-t border-slate-800">
-                <span className="text-slate-400">Saldo pendiente:</span>
-                <span className="font-bold text-rose-400">${sup.balanceDue.toLocaleString('es-AR')}</span>
-              </div>
+        <div className="space-y-4">
+          {/* Buscador de la Base de Proveedores */}
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder="Buscar proveedor por nombre comercial, CUIT o rubro..."
+                value={supplierListSearch}
+                onChange={e => setSupplierListSearch(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
+              />
             </div>
-          ))}
+            <div className="text-xs text-slate-400">
+              Mostrando <strong>{sortedAndFilteredSuppliers.length}</strong> de <strong>{suppliers.length}</strong> proveedores (Orden Alfabético)
+            </div>
+          </div>
+
+          {/* Tabla de Proveedores */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+                  <tr>
+                    <th className="p-3">Nombre Comercial</th>
+                    <th className="p-3">CUIT</th>
+                    <th className="p-3">Rubro / Categoría</th>
+                    <th className="p-3">Teléfono / Contacto</th>
+                    <th className="p-3">Plazo de Pago</th>
+                    <th className="p-3">Saldo Pendiente</th>
+                    <th className="p-3">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {sortedAndFilteredSuppliers.length > 0 ? (
+                    sortedAndFilteredSuppliers.map(sup => (
+                      <tr key={sup.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="p-3 font-bold text-white text-sm">{sup.name}</td>
+                        <td className="p-3 font-mono text-slate-400">{sup.cuit}</td>
+                        <td className="p-3">
+                          <span className="bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px] border border-slate-700">
+                            {sup.category}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-300">{sup.phone || '-'}</td>
+                        <td className="p-3 text-slate-400">{sup.paymentTermDays} días</td>
+                        <td className="p-3 font-black text-rose-400 text-sm">
+                          ${sup.balanceDue.toLocaleString('es-AR')}
+                        </td>
+                        <td className="p-3">
+                          <button
+                            onClick={() => {
+                              setPaySupplierId(sup.id);
+                              setSupplierSearchQuery(sup.name);
+                              setShowPaymentModal(true);
+                            }}
+                            className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 px-3 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1"
+                          >
+                            <CreditCard className="w-3 h-3" /> Registrar Pago
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="p-6 text-center text-slate-500 italic text-xs">
+                        No se encontraron proveedores que coincidan con la búsqueda.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* MODAL REGISTRAR PAGO A PROVEEDOR (CON BUSCADOR E INTEGRACIÓN CON CHEQUES) */}
+      {/* MODAL REGISTRAR PAGO O BONIFICACIÓN A PROVEEDOR */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-emerald-400" />
-                Registrar Pago a Proveedor
+                Registrar Pago o Bonificación a Proveedor
               </h3>
               <button onClick={() => setShowPaymentModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
             </div>
@@ -388,14 +497,13 @@ export const SuppliersView: React.FC = () => {
                   <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                   <input
                     type="text"
-                    placeholder="Escribe el nombre o CUIT para buscar rápido..."
+                    placeholder="Escribe el nombre o CUIT..."
                     value={supplierSearchQuery}
                     onChange={e => setSupplierSearchQuery(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
                   />
                 </div>
 
-                {/* Lista filtrada de sugerencias de proveedor */}
                 <div className="mt-1 max-h-32 overflow-y-auto bg-slate-950 border border-slate-800 rounded-xl divide-y divide-slate-800/60">
                   {filteredSuppliersForPayment.length > 0 ? (
                     filteredSuppliersForPayment.map(s => (
@@ -424,7 +532,6 @@ export const SuppliersView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Indicador del proveedor seleccionado */}
               {selectedSupplier && (
                 <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
                   <div>
@@ -438,7 +545,6 @@ export const SuppliersView: React.FC = () => {
                 </div>
               )}
 
-              {/* Imputación de Factura */}
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Imputar a Factura Específica (Opcional)</label>
                 <select
@@ -458,7 +564,7 @@ export const SuppliersView: React.FC = () => {
                     const rem = inv.amount - (inv.paidAmount || 0);
                     return (
                       <option key={inv.id} value={inv.id}>
-                        Factura {inv.invoiceNumber} - Saldo Pendiente: ${rem.toLocaleString('es-AR')}
+                        Factura {inv.invoiceNumber} ({inv.date}) - Saldo: ${rem.toLocaleString('es-AR')}
                       </option>
                     );
                   })}
@@ -467,7 +573,7 @@ export const SuppliersView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Medio de Pago</label>
+                  <label className="text-xs text-slate-400 block mb-1">Método / Tipo de Transacción</label>
                   <select
                     value={payMethod}
                     onChange={e => setPayMethod(e.target.value as any)}
@@ -477,10 +583,11 @@ export const SuppliersView: React.FC = () => {
                     <option value="CHEQUE_PROPIO">Cheque Propio</option>
                     <option value="CHEQUE_TERCERO">Cheque de Tercero (Endosado)</option>
                     <option value="EFECTIVO">Efectivo</option>
+                    <option value="BONIFICACION_ACUERDO">🎁 Bonificación / Acuerdo Comercial</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Monto a Pagar ($)</label>
+                  <label className="text-xs text-slate-400 block mb-1">Monto a Descontar ($)</label>
                   <input
                     type="number"
                     placeholder="Ej. 150000"
@@ -492,7 +599,12 @@ export const SuppliersView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Si es Cheque Propio o Cheque de Tercero, pedir datos del cheque para el módulo Cheques */}
+              {payMethod === 'BONIFICACION_ACUERDO' && (
+                <div className="bg-purple-950/30 border border-purple-800/50 p-2.5 rounded-xl text-[11px] text-purple-200">
+                  🎁 <strong>Bonificación Comercial</strong>: El monto ingresado descontará directamente el saldo de la cuenta del proveedor sin requerir egreso de efectivo ni cheques.
+                </div>
+              )}
+
               {(payMethod === 'CHEQUE_PROPIO' || payMethod === 'CHEQUE_TERCERO') && (
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
                   <div className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
@@ -529,10 +641,10 @@ export const SuppliersView: React.FC = () => {
               )}
 
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Notas / Referencia de Pago</label>
+                <label className="text-xs text-slate-400 block mb-1">Notas / Detalle del Acuerdo</label>
                 <input
                   type="text"
-                  placeholder="Ej. Transferencia CBU / Pago entregado en mano"
+                  placeholder="Ej. Bonificación por volumen / Descuento nota de crédito"
                   value={payNotes}
                   onChange={e => setPayNotes(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
@@ -551,7 +663,7 @@ export const SuppliersView: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-lg"
                 >
-                  Confirmar Pago
+                  Confirmar Transacción
                 </button>
               </div>
             </form>
@@ -620,12 +732,12 @@ export const SuppliersView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Fecha Emisión</label>
+                  <label className="text-xs text-slate-400 block mb-1">Fecha Emisión (Factura)</label>
                   <input
                     type="date"
                     value={date}
                     onChange={e => setDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-300"
                   />
                 </div>
                 <div>
@@ -676,7 +788,7 @@ export const SuppliersView: React.FC = () => {
                   placeholder="Distribuidora de Lácteos SRL"
                   value={supName}
                   onChange={e => setSupName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
                   required
                 />
               </div>
@@ -689,7 +801,7 @@ export const SuppliersView: React.FC = () => {
                     placeholder="30-12345678-9"
                     value={supCuit}
                     onChange={e => setSupCuit(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-mono"
                   />
                 </div>
                 <div>
@@ -707,6 +819,17 @@ export const SuppliersView: React.FC = () => {
                     <option value="Envasados">Envasados</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Teléfono / Celular de Contacto</label>
+                <input
+                  type="text"
+                  placeholder="11-4567-8901"
+                  value={supPhone}
+                  onChange={e => setSupPhone(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                />
               </div>
 
               <div className="pt-3 flex items-center justify-end space-x-2">

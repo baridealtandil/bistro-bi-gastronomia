@@ -65,12 +65,19 @@ const INITIAL_SALES: Sale[] = [
 ];
 
 const INITIAL_SUPPLIERS: Supplier[] = [
-  { id: 'sup1', name: 'Distribuidora Carnes del Sur', cuit: '30-71234567-8', category: 'Carnes', phone: '11-4567-8901', email: 'ventas@carnesdelsur.com', paymentTermDays: 15, balanceDue: 420000 },
+  { id: 'sup1', name: 'Distribuidora Carnes del Sur', cuit: '30-71234567-8', category: 'Carnes', phone: '11-4567-8901', email: 'ventas@carnesdelsur.com', paymentTermDays: 15, balanceDue: 8277575 },
   { id: 'sup2', name: 'Verdulería Central BAZ', cuit: '20-31987654-3', category: 'Verduras', phone: '11-5678-1234', email: 'pedidos@verduleriabaz.com', paymentTermDays: 7, balanceDue: 85000 },
   { id: 'sup3', name: 'Bebidas & Licores Express', cuit: '30-68912345-1', category: 'Bebidas', phone: '11-3456-7890', email: 'proveedores@licoresexpress.com', paymentTermDays: 30, balanceDue: 0 },
 ];
 
 const INITIAL_PURCHASES: PurchaseInvoice[] = [
+  {
+    id: 'p0', supplierId: 'sup1', supplierName: 'Distribuidora Carnes del Sur', invoiceNumber: 'FC-A-0001-0003980',
+    date: '2026-08-15', dueDate: '2026-08-30', amount: 7857575, paidAmount: 0, status: 'PENDIENTE',
+    items: [
+      { description: 'Factura Compra Insumos Frigorífico (Agosto)', qty: 1, unitPrice: 7857575 }
+    ]
+  },
   {
     id: 'p1', supplierId: 'sup1', supplierName: 'Distribuidora Carnes del Sur', invoiceNumber: 'FC-A-0001-0004512',
     date: '2026-09-01', dueDate: '2026-09-16', amount: 420000, paidAmount: 0, status: 'PENDIENTE',

@@ -45,7 +45,7 @@ export interface SupplierPayment {
   invoiceId?: string;
   invoiceNumber?: string;
   date: string;
-  paymentMethod: 'CHEQUE_PROPIO' | 'CHEQUE_TERCERO' | 'EFECTIVO' | 'TRANSFERENCIA';
+  paymentMethod: 'CHEQUE_PROPIO' | 'CHEQUE_TERCERO' | 'EFECTIVO' | 'TRANSFERENCIA' | 'BONIFICACION_ACUERDO';
   amount: number;
   checkNumber?: string;
   bank?: string;
