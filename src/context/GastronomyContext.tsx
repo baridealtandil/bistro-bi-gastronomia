@@ -231,19 +231,19 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       );
     }
 
-    // 3. Si el pago se realizó con Cheque Propio, registrarlo automáticamente en la Chequera
-    if (paymentData.paymentMethod === 'CHEQUE_PROPIO') {
+    // 3. Si el pago se realizó con Cheque (Propio o Tercero), registrarlo/reflejarlo en el módulo Cheques
+    if (paymentData.paymentMethod === 'CHEQUE_PROPIO' || paymentData.paymentMethod === 'CHEQUE_TERCERO') {
       const newCheck: Check = {
         id: `c_${Date.now()}`,
-        type: 'PROPIO',
+        type: paymentData.paymentMethod === 'CHEQUE_PROPIO' ? 'PROPIO' : 'TERCERO',
         number: paymentData.checkNumber || `CHK-${Date.now().toString().slice(-6)}`,
         bank: paymentData.bank || 'Banco Galicia',
         issuerOrRecipient: paymentData.supplierName,
         issueDate: paymentData.date,
         dueDate: paymentData.dueDate || paymentData.date,
         amount: paymentData.amount,
-        status: 'PENDIENTE',
-        notes: `Generado desde pago a proveedor (${paymentData.invoiceNumber || 'Pago general'})`
+        status: paymentData.paymentMethod === 'CHEQUE_PROPIO' ? 'PENDIENTE' : 'ENDOSADO',
+        notes: `Entregado como pago a proveedor ${paymentData.supplierName} (${paymentData.invoiceNumber || 'Pago general'})`
       };
       setChecks(prev => [newCheck, ...prev]);
     }

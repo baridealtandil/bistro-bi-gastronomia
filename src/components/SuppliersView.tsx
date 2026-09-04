@@ -13,6 +13,7 @@ import {
   CreditCard,
   Receipt,
   CheckSquare,
+  Search,
   ArrowRight
 } from 'lucide-react';
 import { SupplierPayment } from '../types/gastronomy';
@@ -33,6 +34,9 @@ export const SuppliersView: React.FC = () => {
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isScanningOcr, setIsScanningOcr] = useState(false);
+
+  // Buscador de proveedores en el modal de pago
+  const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
 
   // Form State Compra
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id || '');
@@ -137,8 +141,17 @@ export const SuppliersView: React.FC = () => {
     setPayAmount('');
     setCheckNumber('');
     setPayNotes('');
+    setSupplierSearchQuery('');
     setShowPaymentModal(false);
   };
+
+  // Filtrado dinámico de proveedores por búsqueda (Nombre o CUIT)
+  const filteredSuppliersForPayment = suppliers.filter(s =>
+    s.name.toLowerCase().includes(supplierSearchQuery.toLowerCase()) ||
+    s.cuit.includes(supplierSearchQuery)
+  );
+
+  const selectedSupplier = suppliers.find(s => s.id === paySupplierId) || suppliers[0];
 
   // Facturas pendientes del proveedor seleccionado en el modal de pago
   const selectedSupplierInvoices = purchases.filter(
@@ -159,15 +172,19 @@ export const SuppliersView: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setShowPaymentModal(true)}
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-2.5 rounded-xl shadow-lg transition-all"
+            onClick={() => {
+              setPaySupplierId(suppliers[0]?.id || '');
+              setSupplierSearchQuery('');
+              setShowPaymentModal(true);
+            }}
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-lg transition-all"
           >
             <CreditCard className="w-4 h-4" />
             + Registrar Pago
           </button>
           <button
             onClick={() => setShowPurchaseModal(true)}
-            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3 py-2.5 rounded-xl shadow-lg transition-all"
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3.5 py-2.5 rounded-xl shadow-lg transition-all"
           >
             <Plus className="w-4 h-4" />
             + Factura (OCR)
@@ -175,7 +192,7 @@ export const SuppliersView: React.FC = () => {
         </div>
       </div>
 
-      {/* Tarjeta de Resumen Deuda Total */}
+      {/* Tarjetas de Resumen */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl">
           <div className="text-xs text-slate-400 font-medium">Deuda Total Acumulada</div>
@@ -316,7 +333,11 @@ export const SuppliersView: React.FC = () => {
                     </td>
                     <td className="p-3 text-emerald-400 font-black">${pay.amount.toLocaleString('es-AR')}</td>
                     <td className="p-3 text-slate-400">
-                      {pay.checkNumber ? `N° Cheque: ${pay.checkNumber} (${pay.bank})` : pay.notes || '-'}
+                      {pay.checkNumber ? (
+                        <span className="text-amber-300 font-semibold flex items-center gap-1">
+                          <CheckSquare className="w-3.5 h-3.5" /> N° Cheque: {pay.checkNumber} ({pay.bank})
+                        </span>
+                      ) : pay.notes || '-'}
                     </td>
                   </tr>
                 ))}
@@ -347,7 +368,7 @@ export const SuppliersView: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL REGISTRAR PAGO A PROVEEDOR */}
+      {/* MODAL REGISTRAR PAGO A PROVEEDOR (CON BUSCADOR E INTEGRACIÓN CON CHEQUES) */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
@@ -360,24 +381,64 @@ export const SuppliersView: React.FC = () => {
             </div>
 
             <form onSubmit={handleAddPayment} className="space-y-3">
+              {/* Buscador Rápido de Proveedor */}
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Seleccionar Proveedor</label>
-                <select
-                  value={paySupplierId}
-                  onChange={e => {
-                    setPaySupplierId(e.target.value);
-                    setPayInvoiceId('');
-                  }}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                >
-                  {suppliers.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} (Saldo Pendiente: ${s.balanceDue.toLocaleString('es-AR')})
-                    </option>
-                  ))}
-                </select>
+                <label className="text-xs text-slate-400 block mb-1">Buscar Proveedor (Nombre o CUIT)</label>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Escribe el nombre o CUIT para buscar rápido..."
+                    value={supplierSearchQuery}
+                    onChange={e => setSupplierSearchQuery(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  />
+                </div>
+
+                {/* Lista filtrada de sugerencias de proveedor */}
+                <div className="mt-1 max-h-32 overflow-y-auto bg-slate-950 border border-slate-800 rounded-xl divide-y divide-slate-800/60">
+                  {filteredSuppliersForPayment.length > 0 ? (
+                    filteredSuppliersForPayment.map(s => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setPaySupplierId(s.id);
+                          setSupplierSearchQuery(s.name);
+                          setPayInvoiceId('');
+                        }}
+                        className={`w-full text-left p-2 text-xs flex items-center justify-between transition-colors ${
+                          paySupplierId === s.id ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                        }`}
+                      >
+                        <div>
+                          <span className="block font-semibold">{s.name}</span>
+                          <span className="text-[10px] text-slate-500">CUIT: {s.cuit}</span>
+                        </div>
+                        <span className="font-bold text-rose-400 text-[11px]">${s.balanceDue.toLocaleString('es-AR')}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-2 text-xs text-slate-500 text-center">No se encontraron proveedores</div>
+                  )}
+                </div>
               </div>
 
+              {/* Indicador del proveedor seleccionado */}
+              {selectedSupplier && (
+                <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Proveedor Seleccionado:</span>
+                    <span className="font-bold text-amber-400">{selectedSupplier.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-slate-400 block">Deuda Pendiente:</span>
+                    <span className="font-bold text-rose-400">${selectedSupplier.balanceDue.toLocaleString('es-AR')}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Imputación de Factura */}
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Imputar a Factura Específica (Opcional)</label>
                 <select
@@ -397,7 +458,7 @@ export const SuppliersView: React.FC = () => {
                     const rem = inv.amount - (inv.paidAmount || 0);
                     return (
                       <option key={inv.id} value={inv.id}>
-                        Factura {inv.invoiceNumber} - Pendiente: ${rem.toLocaleString('es-AR')}
+                        Factura {inv.invoiceNumber} - Saldo Pendiente: ${rem.toLocaleString('es-AR')}
                       </option>
                     );
                   })}
@@ -414,12 +475,12 @@ export const SuppliersView: React.FC = () => {
                   >
                     <option value="TRANSFERENCIA">Transferencia</option>
                     <option value="CHEQUE_PROPIO">Cheque Propio</option>
-                    <option value="CHEQUE_TERCERO">Cheque de Tercero</option>
+                    <option value="CHEQUE_TERCERO">Cheque de Tercero (Endosado)</option>
                     <option value="EFECTIVO">Efectivo</option>
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 block mb-1">Monto del Pago ($)</label>
+                  <label className="text-xs text-slate-400 block mb-1">Monto a Pagar ($)</label>
                   <input
                     type="number"
                     placeholder="Ej. 150000"
@@ -431,35 +492,47 @@ export const SuppliersView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Si es Cheque Propio, pedir número de cheque y fecha cobro */}
-              {payMethod === 'CHEQUE_PROPIO' && (
+              {/* Si es Cheque Propio o Cheque de Tercero, pedir datos del cheque para el módulo Cheques */}
+              {(payMethod === 'CHEQUE_PROPIO' || payMethod === 'CHEQUE_TERCERO') && (
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
                   <div className="text-[11px] text-amber-400 font-bold flex items-center gap-1">
-                    <CheckSquare className="w-3.5 h-3.5" /> Datos del Cheque (Se registrará en la Chequera automáticamente)
+                    <CheckSquare className="w-3.5 h-3.5" />
+                    Datos del Cheque (Se visualizará en el Módulo de Cheques)
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
-                      placeholder="N° Cheque (CHK-001)"
+                      placeholder="N° Cheque (ej. CHK-9812)"
                       value={checkNumber}
                       onChange={e => setCheckNumber(e.target.value)}
                       className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
+                      required
                     />
+                    <input
+                      type="text"
+                      placeholder="Banco (ej. Galicia / BBVA)"
+                      value={checkBank}
+                      onChange={e => setCheckBank(e.target.value)}
+                      className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 block">Fecha de Vencimiento / Cobro del Cheque</label>
                     <input
                       type="date"
                       value={checkDueDate}
                       onChange={e => setCheckDueDate(e.target.value)}
-                      className="bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-xs text-white outline-none mt-0.5"
                     />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="text-xs text-slate-400 block mb-1">Notas u Observaciones</label>
+                <label className="text-xs text-slate-400 block mb-1">Notas / Referencia de Pago</label>
                 <input
                   type="text"
-                  placeholder="Ej. Transferencia Banco Galicia comprobante 98123"
+                  placeholder="Ej. Transferencia CBU / Pago entregado en mano"
                   value={payNotes}
                   onChange={e => setPayNotes(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
@@ -579,6 +652,76 @@ export const SuppliersView: React.FC = () => {
                   className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
                 >
                   Guardar Factura
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Nuevo Proveedor */}
+      {showSupplierModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white">Registrar Nuevo Proveedor</h3>
+              <button onClick={() => setShowSupplierModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
+            </div>
+
+            <form onSubmit={handleAddSupplier} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Nombre Comercial / Razón Social</label>
+                <input
+                  type="text"
+                  placeholder="Distribuidora de Lácteos SRL"
+                  value={supName}
+                  onChange={e => setSupName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">CUIT</label>
+                  <input
+                    type="text"
+                    placeholder="30-12345678-9"
+                    value={supCuit}
+                    onChange={e => setSupCuit(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Rubro / Categoría</label>
+                  <select
+                    value={supCategory}
+                    onChange={e => setSupCategory(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  >
+                    <option value="Carnes">Carnes</option>
+                    <option value="Verduras">Verduras</option>
+                    <option value="Bebidas">Bebidas</option>
+                    <option value="Lácteos">Lácteos</option>
+                    <option value="Limpieza">Limpieza</option>
+                    <option value="Envasados">Envasados</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowSupplierModal(false)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
+                >
+                  Crear Proveedor
                 </button>
               </div>
             </form>
