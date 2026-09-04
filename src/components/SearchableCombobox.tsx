@@ -65,9 +65,15 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredOptions = options.filter(opt =>
-    opt.toLowerCase().includes(searchQuery.toLowerCase().trim())
-  );
+  // Determine if search query is unchanged from current value
+  const isValueUnchanged = value && searchQuery.trim().toLowerCase() === value.trim().toLowerCase();
+
+  // If search query is empty or unchanged from selected value, show ALL options so user can pick any item
+  const filteredOptions = (!searchQuery.trim() || isValueUnchanged)
+    ? options
+    : options.filter(opt =>
+        opt.toLowerCase().includes(searchQuery.toLowerCase().trim())
+      );
 
   const isExactMatch = options.some(
     opt => opt.toLowerCase().trim() === searchQuery.toLowerCase().trim()
@@ -80,6 +86,11 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
     setIsOpen(true);
   };
 
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+    setIsOpen(true);
+  };
+
   const handleSelectOption = (opt: string) => {
     onChange(opt);
     setSearchQuery(opt);
@@ -88,7 +99,7 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
 
   return (
     <div className={`relative ${className}`} ref={containerRef}>
-      {label && <label className="text-xs text-slate-400 block mb-1">{label}</label>}
+      {label && <label className="text-xs text-slate-400 block mb-1 font-medium">{label}</label>}
 
       <div className="relative">
         <div className="absolute left-3 top-2.5 text-slate-500 flex items-center pointer-events-none">
@@ -99,10 +110,10 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
           type="text"
           value={searchQuery}
           onChange={handleInputChange}
-          onFocus={() => setIsOpen(true)}
+          onFocus={handleInputFocus}
           placeholder={placeholder}
           required={required}
-          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium"
+          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-8 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium cursor-pointer"
         />
 
         <button
@@ -115,7 +126,7 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
       </div>
 
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-50 max-h-52 overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
+        <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-950 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
           {allowCustom && searchQuery.trim() !== '' && !isExactMatch && (
             <button
               type="button"
