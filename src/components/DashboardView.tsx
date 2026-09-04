@@ -85,24 +85,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         </button>
       </div>
 
-      {/* Alerta de Salud Financiera (Prime Cost) */}
-      {primeCostPercentage > 65 ? (
-        <div className="bg-rose-950/40 border border-rose-800/60 p-4 rounded-2xl flex items-start gap-3 text-rose-200">
-          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-          <div className="text-xs">
-            <span className="font-bold text-sm block text-rose-300">Alerta de Prime Cost Elevado ({primeCostPercentage.toFixed(1)}%)</span>
-            Tu costo conjunto de materia prima ({foodCostPercentage.toFixed(1)}%) y sueldos ({laborCostPercentage.toFixed(1)}%) supera el 65% recomendado para gastronomía. Revisa precios de proveedores o ajusta escandallos.
-          </div>
-        </div>
-      ) : (
-        <div className="bg-emerald-950/30 border border-emerald-800/50 p-4 rounded-2xl flex items-center gap-3 text-emerald-200">
-          <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-          <div className="text-xs">
-            <span className="font-bold text-sm block text-emerald-300">Prime Cost Saludable ({primeCostPercentage.toFixed(1)}%)</span>
-            Los costos operativos principales están dentro del rango óptimo (&lt;65%).
-          </div>
-        </div>
-      )}
+
 
       {/* Grilla de KPIs principales */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

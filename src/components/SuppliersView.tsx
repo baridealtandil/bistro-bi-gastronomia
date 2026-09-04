@@ -61,6 +61,18 @@ export const SuppliersView: React.FC = () => {
   const [supCategory, setSupCategory] = useState('');
   const [supPhone, setSupPhone] = useState('');
 
+  // Detección de coincidencia/duplicidad de proveedor
+  const normalizedSupName = supName.trim().toLowerCase();
+  const exactSupplierMatch = normalizedSupName
+    ? suppliers.find(s => s.name.trim().toLowerCase() === normalizedSupName)
+    : null;
+  const similarSupplierMatch = (!exactSupplierMatch && normalizedSupName.length >= 3)
+    ? suppliers.find(s => {
+        const sName = s.name.trim().toLowerCase();
+        return sName.includes(normalizedSupName) || normalizedSupName.includes(sName);
+      })
+    : null;
+
   // Form State Pago a Proveedor
   const [paySupplierId, setPaySupplierId] = useState(suppliers[0]?.id || '');
   const [payInvoiceId, setPayInvoiceId] = useState('');
@@ -122,6 +134,10 @@ export const SuppliersView: React.FC = () => {
   const handleAddSupplier = (e: React.FormEvent) => {
     e.preventDefault();
     if (!supName) return;
+    if (exactSupplierMatch) {
+      alert(`⛔ No es posible registrar el proveedor: Ya existe un registro con el nombre exacto "${exactSupplierMatch.name}".`);
+      return;
+    }
 
     addSupplier({
       name: supName,
@@ -788,9 +804,35 @@ export const SuppliersView: React.FC = () => {
                   placeholder="Distribuidora de Lácteos SRL"
                   value={supName}
                   onChange={e => setSupName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
+                  className={`w-full bg-slate-950 border rounded-xl p-2.5 text-xs text-white outline-none font-bold transition-colors ${
+                    exactSupplierMatch
+                      ? 'border-rose-500 text-rose-300'
+                      : similarSupplierMatch
+                      ? 'border-amber-500 text-amber-300'
+                      : 'border-slate-800 focus:border-amber-500'
+                  }`}
                   required
                 />
+
+                {exactSupplierMatch && (
+                  <div className="mt-2 p-2.5 bg-rose-950/80 border border-rose-800 rounded-xl text-rose-200 text-xs flex items-start gap-2 animate-fadeIn">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-rose-300 block">⛔ Proveedor ya registrado</span>
+                      Ya existe un proveedor con este nombre exacto: <strong>"{exactSupplierMatch.name}"</strong> (Rubro: {exactSupplierMatch.category}).
+                    </div>
+                  </div>
+                )}
+
+                {similarSupplierMatch && (
+                  <div className="mt-2 p-2.5 bg-amber-950/80 border border-amber-800 rounded-xl text-amber-200 text-xs flex items-start gap-2 animate-fadeIn">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-amber-300 block">⚠️ Coincidencia detectada</span>
+                      Existe un proveedor registrado con nombre similar: <strong>"{similarSupplierMatch.name}"</strong> (Rubro: {similarSupplierMatch.category}). Revisa si no es la misma empresa antes de crearlo.
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
