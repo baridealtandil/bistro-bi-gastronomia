@@ -37,6 +37,7 @@ interface GastronomyContextType {
   checks: Check[];
   addCheck: (check: Omit<Check, 'id'>) => void;
   editCheck: (id: string, checkData: Partial<Check>) => void;
+  markCheckAsCovered: (id: string, customBankName?: string) => void;
   employees: Employee[];
   addEmployee: (employee: Omit<Employee, 'id'>) => void;
   advances: Advance[];
@@ -473,8 +474,11 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
 
     // Verificar si el destinatario/proveedor coincide con un proveedor en la base de datos
+    const recipientClean = (checkData.issuerOrRecipient || '').toLowerCase().trim();
     const targetSupplier = suppliers.find(
-      s => s.name.toLowerCase().trim() === checkData.issuerOrRecipient.toLowerCase().trim()
+      s => s.name.toLowerCase().trim() === recipientClean ||
+           s.name.toLowerCase().trim().includes(recipientClean) ||
+           (recipientClean.length >= 3 && recipientClean.includes(s.name.toLowerCase().trim()))
     );
 
     if (targetSupplier) {
@@ -550,6 +554,75 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return c;
       });
       try { localStorage.setItem('gastro_checks', JSON.stringify(updated)); } catch (err) {}
+      return updated;
+    });
+
+    // Si se editó el cheque y está asignado a un proveedor, sincronizar el pago al proveedor
+    if (checkData.issuerOrRecipient || checkData.amount) {
+      const existingCheck = checks.find(c => c.id === id);
+      const recipientName = checkData.issuerOrRecipient || existingCheck?.issuerOrRecipient || '';
+      const recipientClean = recipientName.toLowerCase().trim();
+      const targetSupplier = suppliers.find(
+        s => s.name.toLowerCase().trim() === recipientClean ||
+             s.name.toLowerCase().trim().includes(recipientClean) ||
+             (recipientClean.length >= 3 && recipientClean.includes(s.name.toLowerCase().trim()))
+      );
+
+      if (targetSupplier) {
+        const checkNumber = checkData.number || existingCheck?.number;
+        const existingPayment = supplierPayments.find(sp => sp.checkNumber === checkNumber);
+        if (!existingPayment) {
+          const newPayment: SupplierPayment = {
+            id: `pay_${Date.now()}`,
+            supplierId: targetSupplier.id,
+            supplierName: targetSupplier.name,
+            date: checkData.issueDate || existingCheck?.issueDate || new Date().toISOString().split('T')[0],
+            paymentMethod: (checkData.type || existingCheck?.type) === 'PROPIO' ? 'CHEQUE_PROPIO' : 'CHEQUE_TERCERO',
+            amount: checkData.amount || existingCheck?.amount || 0,
+            checkNumber: checkNumber,
+            bank: checkData.bank || existingCheck?.bank,
+            dueDate: checkData.dueDate || existingCheck?.dueDate,
+            notes: `Pago actualizado desde la Chequera (Cheque N° ${checkNumber})`
+          };
+
+          setSupplierPayments(prev => {
+            const updated = [newPayment, ...prev];
+            try { localStorage.setItem('gastro_supplier_payments', JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
+      }
+    }
+  };
+
+  const markCheckAsCovered = (checkId: string, customBankName?: string) => {
+    const targetCheck = checks.find(c => c.id === checkId);
+    if (!targetCheck) return;
+
+    const bankToDebit = customBankName || targetCheck.bank || 'Banco Galicia';
+
+    // 1. Cambiar estado del cheque a CUBIERTO
+    setChecks(prev => {
+      const updated = prev.map(c => c.id === checkId ? { ...c, status: 'CUBIERTO' as const, lastModifiedBy: role, lastModifiedAt: new Date().toISOString() } : c);
+      try { localStorage.setItem('gastro_checks', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+
+    // 2. Registrar egreso en Bancos
+    const newBm: BankMovement = {
+      id: `bm_${Date.now()}`,
+      bankName: bankToDebit,
+      date: new Date().toISOString().split('T')[0],
+      type: 'EGRESO',
+      concept: `Débito por Cobertura de Cheque N° ${targetCheck.number} (${targetCheck.issuerOrRecipient})`,
+      amount: targetCheck.amount,
+      referenceNumber: targetCheck.number,
+      notes: `Cheque marcado como cubierto/pagado en banco ${bankToDebit}`
+    };
+
+    setBankMovements(prev => {
+      const updated = [newBm, ...prev];
+      try { localStorage.setItem('gastro_bank_movements', JSON.stringify(updated)); } catch (e) {}
       return updated;
     });
   };
@@ -777,6 +850,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         checks,
         addCheck,
         editCheck,
+        markCheckAsCovered,
         employees,
         addEmployee,
         advances,

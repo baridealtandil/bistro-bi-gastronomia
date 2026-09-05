@@ -21,7 +21,8 @@ import {
   ArrowRight,
   X,
   Edit2,
-  ShieldCheck
+  ShieldCheck,
+  BookOpen
 } from 'lucide-react';
 import { SupplierPayment, Supplier } from '../types/gastronomy';
 
@@ -30,6 +31,7 @@ export const SuppliersView: React.FC = () => {
     suppliers,
     purchases,
     supplierPayments,
+    checks,
     addPurchase,
     addSupplier,
     editSupplier,
@@ -37,6 +39,8 @@ export const SuppliersView: React.FC = () => {
     totalSupplierDebt,
     role
   } = useGastronomy();
+
+  const [selectedCcSupplierId, setSelectedCcSupplierId] = useState<string>(suppliers[0]?.id || '');
 
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
@@ -154,6 +158,107 @@ export const SuppliersView: React.FC = () => {
 
   // Facturas pendientes filtradas para la tabla de comprobantes del proveedor
   const filteredPendingPurchases = filteredPurchasesForCards.filter(p => p.status !== 'PAGADO');
+
+  // CÁLCULO DE CUENTA CORRIENTE Y LIBRO MAYOR DE PROVEEDOR (DEBE, HABER, SALDO ACUMULADO)
+  const getSupplierLedgerMovements = (sup?: Supplier) => {
+    if (!sup) return { movements: [], totalDebe: 0, totalHaber: 0, finalSaldo: 0 };
+
+    interface LedgerEntry {
+      id: string;
+      date: string;
+      concept: string;
+      method: string;
+      debe: number;
+      haber: number;
+      saldo?: number;
+      type: 'INICIAL' | 'FACTURA' | 'PAGO';
+      reference?: string;
+    }
+
+    const movements: LedgerEntry[] = [];
+
+    // 1. Saldo Inicial de Apertura
+    if ((sup.initialBalanceDue || 0) > 0) {
+      movements.push({
+        id: `init_${sup.id}`,
+        date: '2026-08-01',
+        concept: 'Saldo Inicial de Apertura (Deuda Previa)',
+        method: 'SALDO INICIAL',
+        debe: sup.initialBalanceDue || 0,
+        haber: 0,
+        type: 'INICIAL'
+      });
+    }
+
+    // 2. Facturas de Compra (DEBE - Incrementa la deuda)
+    const supPurchases = purchases.filter(p => p.supplierId === sup.id);
+    for (const p of supPurchases) {
+      movements.push({
+        id: p.id,
+        date: p.date,
+        concept: `Factura ${p.invoiceNumber}${p.items && p.items[0] ? ` - ${p.items[0].description}` : ''}`,
+        method: 'COMPRA / DEBE',
+        debe: p.amount,
+        haber: 0,
+        type: 'FACTURA',
+        reference: p.invoiceNumber
+      });
+    }
+
+    // 3. Pagos / Abonos / Bonificaciones a Proveedor (HABER - Reduce la deuda)
+    const supPayments = supplierPayments.filter(sp => sp.supplierId === sup.id);
+    for (const sp of supPayments) {
+      movements.push({
+        id: sp.id,
+        date: sp.date,
+        concept: sp.notes || `Pago a Proveedor (${sp.paymentMethod})`,
+        method: sp.paymentMethod + (sp.checkNumber ? ` N° ${sp.checkNumber}` : '') + (sp.bank ? ` (${sp.bank})` : ''),
+        debe: 0,
+        haber: sp.amount,
+        type: 'PAGO',
+        reference: sp.checkNumber || sp.invoiceNumber
+      });
+    }
+
+    // 4. Cheques emitidos asignados al proveedor (si aún no figuran en supplierPayments)
+    const supNameLower = sup.name.toLowerCase().trim();
+    const supChecks = checks.filter(c => {
+      const recipientLower = (c.issuerOrRecipient || '').toLowerCase().trim();
+      const isMatch = recipientLower === supNameLower || recipientLower.includes(supNameLower) || supNameLower.includes(recipientLower);
+      const isAlreadyInPayments = supPayments.some(sp => sp.checkNumber === c.number);
+      return isMatch && !isAlreadyInPayments;
+    });
+
+    for (const c of supChecks) {
+      movements.push({
+        id: c.id,
+        date: c.issueDate || c.dueDate,
+        concept: `Cheque ${c.type === 'PROPIO' ? 'Propio' : 'Tercero'} N° ${c.number} (${c.status})`,
+        method: `CHEQUE ${c.bank}`,
+        debe: 0,
+        haber: c.amount,
+        type: 'PAGO',
+        reference: c.number
+      });
+    }
+
+    // Ordenar cronológicamente por fecha
+    movements.sort((a, b) => a.date.localeCompare(b.date));
+
+    // Calcular saldo acumulado corriendo
+    let runningSaldo = 0;
+    let totalDebe = 0;
+    let totalHaber = 0;
+
+    const calculatedMovements = movements.map(m => {
+      totalDebe += m.debe;
+      totalHaber += m.haber;
+      runningSaldo += (m.debe - m.haber);
+      return { ...m, saldo: runningSaldo };
+    });
+
+    return { movements: calculatedMovements, totalDebe, totalHaber, finalSaldo: runningSaldo };
+  };
 
   const handleSimulateOcr = () => {
     setIsScanningOcr(true);
@@ -472,6 +577,13 @@ export const SuppliersView: React.FC = () => {
                     <td className="p-3">
                       <div className="flex items-center gap-1.5">
                         <button
+                          onClick={() => setSelectedCcSupplierId(sup.id)}
+                          className="bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 px-2.5 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shrink-0"
+                          title="Ver Cuenta Corriente y Libro Mayor"
+                        >
+                          <BookOpen className="w-3 h-3" /> Cta Cte
+                        </button>
+                        <button
                           onClick={() => handleStartEditSupplier(sup)}
                           className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
                           title="Editar datos del proveedor / saldo inicial"
@@ -512,6 +624,128 @@ export const SuppliersView: React.FC = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* SECCIÓN DE CUENTA CORRIENTE Y LIBRO MAYOR DE PROVEEDORES */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl space-y-4 p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-amber-400" />
+              Cuenta Corriente & Libro Mayor de Proveedor
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Consulta en tiempo real los movimientos de Debe (Facturas), Haber (Pagos, Cheques y Bonificaciones) y Saldo Acumulado.
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-400 font-medium">Seleccionar Proveedor:</label>
+            <select
+              value={selectedCcSupplierId || (suppliers[0]?.id ?? '')}
+              onChange={e => setSelectedCcSupplierId(e.target.value)}
+              className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-400 font-bold focus:outline-none focus:border-amber-500"
+            >
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} (Saldo: ${s.balanceDue.toLocaleString('es-AR')})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Tarjetas Resumen de la Cuenta Corriente Seleccionada */}
+        {(() => {
+          const currentCcSup = suppliers.find(s => s.id === (selectedCcSupplierId || suppliers[0]?.id)) || suppliers[0];
+          const ledgerData = getSupplierLedgerMovements(currentCcSup);
+
+          return (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="bg-slate-950 border border-slate-800 p-3.5 rounded-xl">
+                  <span className="text-[10px] text-slate-400 font-bold block mb-1">Saldo Inicial de Apertura</span>
+                  <span className="text-base font-black text-amber-300">
+                    ${(currentCcSup?.initialBalanceDue || 0).toLocaleString('es-AR')}
+                  </span>
+                </div>
+                <div className="bg-slate-950 border border-rose-900/40 p-3.5 rounded-xl">
+                  <span className="text-[10px] text-rose-400 font-bold block mb-1">Total DEBE (Facturas / Cargos)</span>
+                  <span className="text-base font-black text-rose-400">
+                    +${ledgerData.totalDebe.toLocaleString('es-AR')}
+                  </span>
+                </div>
+                <div className="bg-slate-950 border border-emerald-900/40 p-3.5 rounded-xl">
+                  <span className="text-[10px] text-emerald-400 font-bold block mb-1">Total HABER (Pagos / Cheques / Acreditaciones)</span>
+                  <span className="text-base font-black text-emerald-400">
+                    -${ledgerData.totalHaber.toLocaleString('es-AR')}
+                  </span>
+                </div>
+                <div className="bg-slate-950 border border-amber-500/30 bg-amber-500/5 p-3.5 rounded-xl">
+                  <span className="text-[10px] text-amber-400 font-bold block mb-1">SALDO ACUMULADO ACTUAL</span>
+                  <span className="text-lg font-black text-amber-400">
+                    ${ledgerData.finalSaldo.toLocaleString('es-AR')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tabla Libro Mayor */}
+              <div className="overflow-x-auto border border-slate-800 rounded-xl">
+                <table className="w-full text-left text-xs text-slate-300">
+                  <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Fecha</th>
+                      <th className="p-3">Concepto / Comprobante</th>
+                      <th className="p-3">Medio de Pago / Tipo</th>
+                      <th className="p-3 text-right">DEBE (Factura +)</th>
+                      <th className="p-3 text-right">HABER (Pago -)</th>
+                      <th className="p-3 text-right font-black text-amber-400">SALDO ACUMULADO</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {ledgerData.movements.length > 0 ? (
+                      ledgerData.movements.map((m, idx) => (
+                        <tr key={m.id || idx} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="p-3 font-semibold text-white whitespace-nowrap">{m.date}</td>
+                          <td className="p-3 font-bold text-amber-300">
+                            <div>{m.concept}</div>
+                            {m.reference && <span className="text-[10px] text-slate-400 font-mono">Ref: {m.reference}</span>}
+                          </td>
+                          <td className="p-3 whitespace-nowrap">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                              m.type === 'INICIAL'
+                                ? 'bg-slate-800 text-amber-400 border-slate-700'
+                                : m.type === 'FACTURA'
+                                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            }`}>
+                              {m.method}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right font-bold text-rose-400">
+                            {m.debe > 0 ? `+$${m.debe.toLocaleString('es-AR')}` : '-'}
+                          </td>
+                          <td className="p-3 text-right font-bold text-emerald-400">
+                            {m.haber > 0 ? `-$${m.haber.toLocaleString('es-AR')}` : '-'}
+                          </td>
+                          <td className="p-3 text-right font-black text-white text-sm">
+                            ${(m.saldo ?? 0).toLocaleString('es-AR')}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="p-6 text-center text-slate-500 italic text-xs">
+                          No hay movimientos registrados en la cuenta corriente de este proveedor.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* SECCIÓN DE FACTURAS Y REMITOS PENDIENTES DEL PROVEEDOR BUSCADO */}

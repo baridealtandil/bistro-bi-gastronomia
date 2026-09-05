@@ -85,7 +85,7 @@ export interface Check {
   issueDate: string;
   dueDate: string;
   amount: number;
-  status: 'PENDIENTE' | 'COBRADO' | 'DEPOSITADO' | 'ENDOSADO' | 'ANULADO';
+  status: 'PENDIENTE' | 'COBRADO' | 'DEPOSITADO' | 'ENDOSADO' | 'ANULADO' | 'CUBIERTO' | 'PAGADO';
   notes?: string;
   lastModifiedBy?: UserRole;
   lastModifiedAt?: string;

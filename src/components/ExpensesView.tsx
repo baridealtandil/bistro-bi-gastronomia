@@ -8,6 +8,7 @@ import { DateRangePicker } from './DateRangePicker';
 import { Expense } from '../types/gastronomy';
 
 const COMMON_EXPENSE_PROVIDERS = [
+  'Retiro de Socios / Ganancias',
   'Depósito en Banco para Cubrir Cheque',
   'Cobertura / Pago de Cheque Diferido',
   'Supermercado (Coto / Carrefour / Jumbo)',
@@ -27,6 +28,7 @@ const COMMON_EXPENSE_PROVIDERS = [
 ];
 
 const DEFAULT_EXPENSE_CATEGORIES = [
+  'RETIRO_SOCIOS',
   'COBERTURA CHEQUES',
   'DEPÓSITO BANCARIO',
   'SUPERMERCADO',

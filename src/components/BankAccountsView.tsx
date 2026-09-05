@@ -269,17 +269,38 @@ export const BankAccountsView: React.FC = () => {
         </div>
       </div>
 
-      {/* DESGLOSE DE SALDOS REALES POR BANCO */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {allBankNames.map(bn => {
-          const bSummary = getBankSummary(bn);
-          return (
-            <div key={bn} className="bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 whitespace-nowrap shadow-md">
-              <span className="text-slate-400 font-semibold">{bn}:</span>
-              <span className="font-black text-white">${bSummary.currentBalance.toLocaleString('es-AR')}</span>
-            </div>
-          );
-        })}
+      {/* TARJETAS INDIVIDUALES SEPARADAS POR ENTIDAD BANCARIA */}
+      <div className="space-y-2">
+        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+          <Building className="w-4 h-4 text-amber-400" /> Cuentas Bancarias por Entidad (Saldos Individuales)
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {allBankNames.map(bn => {
+            const bSummary = getBankSummary(bn);
+            return (
+              <div key={bn} className={`bg-slate-900 border ${selectedBank === bn ? 'border-amber-500/80 bg-amber-500/5' : 'border-slate-800'} p-4 rounded-2xl space-y-2 shadow-lg hover:border-slate-700 transition-all`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                    🏦 {bn}
+                  </span>
+                  <button
+                    onClick={() => setSelectedBank(selectedBank === bn ? 'ALL' : bn)}
+                    className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-lg border border-slate-700 font-semibold"
+                  >
+                    {selectedBank === bn ? 'Ver Todos' : 'Filtrar'}
+                  </button>
+                </div>
+                <div className="text-xl font-black text-white">
+                  ${bSummary.currentBalance.toLocaleString('es-AR')}
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
+                  <div>Ingresos: <span className="text-emerald-400 font-bold">+${bSummary.totalIngresos.toLocaleString('es-AR')}</span></div>
+                  <div>Egresos: <span className="text-rose-400 font-bold">-${bSummary.totalEgresos.toLocaleString('es-AR')}</span></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* FILTROS CON ALMANAQUE Y BÚSQUEDA DE CONCEPTOS */}

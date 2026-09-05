@@ -20,7 +20,7 @@ import {
 import { Check as CheckType } from '../types/gastronomy';
 
 export const ChecksView: React.FC = () => {
-  const { checks, addCheck, editCheck, suppliers, role } = useGastronomy();
+  const { checks, addCheck, editCheck, markCheckAsCovered, suppliers, role } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCheck, setEditingCheck] = useState<CheckType | null>(null);
@@ -346,14 +346,28 @@ export const ChecksView: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={() => handleStartEdit(c)}
-                        className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
-                        title="Modificar cheque registrado"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                    <td className="p-3 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {c.status !== 'CUBIERTO' && c.status !== 'PAGADO' && (
+                          <button
+                            onClick={() => {
+                              markCheckAsCovered(c.id, c.bank);
+                              alert(`🏦 Cheque N° ${c.number} marcado como CUBIERTO. Se registró el débito de $${c.amount.toLocaleString('es-AR')} en ${c.bank}.`);
+                            }}
+                            className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 px-2 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1"
+                            title="Cubrir / Debitar cheque en el Banco emisor"
+                          >
+                            🏦 Cubrir en Banco
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleStartEdit(c)}
+                          className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
+                          title="Modificar cheque registrado"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
