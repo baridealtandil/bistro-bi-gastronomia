@@ -87,17 +87,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
   const alertCount = notifications.length;
 
   return (
-    <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 px-4 py-3 shadow-md">
+    <header className="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 px-4 py-5 md:py-6 shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand / Title */}
-        <div className="flex items-center space-x-3">
-          <Image src="/cantina-pink-logo.png" alt="Cantina Pink" width={168} height={174} className="h-12 md:h-14 w-auto rounded-lg shrink-0" priority />
+        <div className="flex items-center space-x-4">
+          <Image src="/cantina-pink-logo.png" alt="Cantina Pink" width={252} height={261} className="h-20 md:h-28 w-auto rounded-lg shrink-0" priority />
           <div>
-            <h1 className="font-bold text-lg md:text-xl tracking-tight flex items-center gap-2">
-              <span className="sr-only">Cantina Pink</span>
-              <span className="text-xs bg-amber-500/20 text-amber-400 font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">Complemento POS</span>
-            </h1>
-            <p className="text-xs text-slate-400 hidden sm:block">Gestión Financiera, Cheques e IA para Gastronomía</p>
+            <h1 className="sr-only">Cantina Pink</h1>
+            <p className="text-xs md:text-sm text-slate-400 hidden sm:block">Gestión Financiera, Cheques e IA para Gastronomía</p>
           </div>
         </div>
 
