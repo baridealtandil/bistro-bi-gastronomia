@@ -70,8 +70,10 @@ export interface Expense {
   description: string;
   amount: number;
   paymentMethod?: string;
+  bankName?: string; // banco específico cuando paymentMethod es una transferencia/débito bancario
   dueDate?: string;
   status: 'PENDIENTE' | 'PAGADO';
+  linkedAdvanceId?: string; // presente cuando este gasto fue generado automáticamente desde un Adelanto
   lastModifiedBy?: UserRole;
   lastModifiedAt?: string;
 }
@@ -106,6 +108,9 @@ export interface Advance {
   employeeName: string;
   date: string;
   amount: number;
+  paymentMethod?: 'EFECTIVO' | 'TRANSFERENCIA' | 'MERCADO_PAGO';
+  bankName?: string;
+  linkedExpenseId?: string; // el gasto en Pagos generado automáticamente para este adelanto
   notes?: string;
 }
 
@@ -156,5 +161,27 @@ export interface BankMovement {
   notes?: string;
   lastModifiedBy?: UserRole;
   lastModifiedAt?: string;
+}
+
+// Equivalente a BankMovement pero para las cuentas que no son un banco:
+// Caja (efectivo) y MercadoPago. Junto con BankMovement, es la única fuente
+// de verdad para calcular saldos — ninguna vista debería recalcularlos por su cuenta.
+export interface CashMovement {
+  id: string;
+  accountType: 'CAJA' | 'MERCADO_PAGO';
+  date: string;
+  direction: 'INGRESO' | 'EGRESO';
+  concept: string;
+  amount: number;
+  sourceModule: 'VENTA' | 'PAGO_PROVEEDOR' | 'GASTO' | 'ADELANTO';
+  sourceId?: string; // id de la venta/pago/gasto/adelanto que originó este movimiento
+  notes?: string;
+}
+
+export interface AccountBalances {
+  caja: number;
+  mercadoPago: number;
+  bancos: number;
+  bancosPorEntidad: Record<string, number>;
 }
 

@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useGastronomy } from '../context/GastronomyContext';
+import { useGastronomy, classifyPaymentMethod } from '../context/GastronomyContext';
 import { Plus, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw, Wallet, CreditCard, Landmark, ArrowDownCircle, Edit2, ShieldCheck } from 'lucide-react';
 import { Sale } from '../types/gastronomy';
 import { DateRangePicker } from './DateRangePicker';
 
 export const SalesView: React.FC = () => {
-  const { sales, addSale, editSale, expenses, initialBalances, role } = useGastronomy();
+  const { sales, addSale, editSale, expenses, role, cajaMayorBalance, mercadoPagoBalance } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -99,34 +99,21 @@ export const SalesView: React.FC = () => {
   const periodSalesNet = filteredSales.reduce((acc, s) => acc + s.netAmount, 0);
   const periodAverageTicket = periodCovers > 0 ? periodSalesNet / periodCovers : 0;
 
-  // CÁLCULO DE CAJA MAYOR Y MERCADOPAGO / BANCOS
+  // Caja Mayor y MercadoPago/Bancos ya no se recalculan acá: vienen del Context,
+  // que es la única fuente de verdad (antes esta vista tenía su propia fórmula,
+  // distinta de la que usa el Dashboard y el Asistente IA — podían no coincidir).
+  // Lo que sigue es solo el desglose informativo de ventas y pagos del período elegido.
   const periodCashSales = filteredSales.filter(s => s.paymentMethod === 'EFECTIVO').reduce((acc, s) => acc + s.netAmount, 0);
   const periodDigitalSales = filteredSales.filter(s => s.paymentMethod !== 'EFECTIVO').reduce((acc, s) => acc + s.netAmount, 0);
 
-  // Egresos acumulados por medio de pago
-  const periodCashExpenses = expenses.filter(e => {
+  const periodExpensesInRange = expenses.filter(e => {
     const expDate = e.date || e.dueDate || '';
     if (startDate && expDate < startDate) return false;
     if (endDate && expDate > endDate) return false;
-    const pm = (e.paymentMethod || '').toUpperCase();
-    return pm.includes('EFECTIVO') || pm.includes('CAJA CHICA');
-  }).reduce((acc, e) => acc + e.amount, 0);
-
-  const periodDigitalExpenses = expenses.filter(e => {
-    const expDate = e.date || e.dueDate || '';
-    if (startDate && expDate < startDate) return false;
-    if (endDate && expDate > endDate) return false;
-    const pm = (e.paymentMethod || '').toUpperCase();
-    return pm.includes('TRANSFERENCIA') || pm.includes('MERCADO PAGO') || pm.includes('TARJETA') || pm.includes('DÉBITO') || pm.includes('DIGITAL');
-  }).reduce((acc, e) => acc + e.amount, 0);
-
-  // Saldos Iniciales Configurados
-  const initialCash = (initialBalances || []).filter(ib => ib.accountType === 'CAJA').reduce((acc, ib) => acc + ib.amount, 0);
-  const initialDigital = (initialBalances || []).filter(ib => ib.accountType === 'MERCADO_PAGO' || ib.accountType === 'BANCO').reduce((acc, ib) => acc + ib.amount, 0);
-
-  // Saldos Netos Disponibles en Caja Mayor y MercadoPago/Banco
-  const cajaMayorBalance = initialCash + periodCashSales - periodCashExpenses;
-  const mercadoPagoBalance = initialDigital + periodDigitalSales - periodDigitalExpenses;
+    return e.status === 'PAGADO';
+  });
+  const periodCashExpenses = periodExpensesInRange.filter(e => classifyPaymentMethod(e.paymentMethod) === 'CAJA').reduce((acc, e) => acc + e.amount, 0);
+  const periodDigitalExpenses = periodExpensesInRange.filter(e => classifyPaymentMethod(e.paymentMethod) === 'MERCADO_PAGO').reduce((acc, e) => acc + e.amount, 0);
 
   return (
     <div className="space-y-6 pb-12">

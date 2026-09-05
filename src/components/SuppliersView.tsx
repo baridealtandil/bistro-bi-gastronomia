@@ -1165,6 +1165,22 @@ export const SuppliersView: React.FC = () => {
                 </div>
               </div>
 
+              {/* Transferencia: hay que saber de qué banco sale la plata para que se descuente de ahí */}
+              {payMethod === 'TRANSFERENCIA' && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+                  <label className="text-[11px] font-bold text-amber-300 block">Banco de Origen</label>
+                  <input
+                    type="text"
+                    placeholder="Banco Galicia / Banco Nación / BBVA..."
+                    value={checkBank}
+                    onChange={e => setCheckBank(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-white"
+                    required
+                  />
+                  <span className="text-[10px] text-slate-500 block">Este monto se descuenta del saldo de ese banco.</span>
+                </div>
+              )}
+
               {/* Si se paga con Cheque Propio */}
               {payMethod === 'CHEQUE_PROPIO' && (
                 <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">

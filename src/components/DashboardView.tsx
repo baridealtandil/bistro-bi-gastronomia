@@ -121,10 +121,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             <span>Utilidad Neta Est.</span>
             <DollarSign className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="text-xl md:text-2xl font-black text-white">
+          <div className={`text-xl md:text-2xl font-black ${netProfitEstMonth >= 0 ? 'text-white' : 'text-rose-400'}`}>
             ${netProfitEstMonth.toLocaleString('es-AR')}
           </div>
-          <div className="text-[10px] text-emerald-400 font-semibold">
+          <div className={`text-[10px] font-semibold ${netProfitEstMonth >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
             {totalSalesNetMonth > 0 ? ((netProfitEstMonth / totalSalesNetMonth) * 100).toFixed(1) : 0}% margen neto
           </div>
         </div>

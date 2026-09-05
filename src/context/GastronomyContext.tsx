@@ -14,8 +14,23 @@ import {
   Dish,
   ChatMessage,
   InitialBalance,
-  BankMovement
+  BankMovement,
+  CashMovement
 } from '../types/gastronomy';
+
+// Interpreta un medio de pago en texto libre (Ventas/Gastos) y dice a qué
+// tipo de cuenta afecta. Única función de este tipo en todo el proyecto —
+// si en algún módulo hace falta esta lógica, se importa de acá, no se reescribe.
+export function classifyPaymentMethod(pm?: string): 'CAJA' | 'MERCADO_PAGO' | 'BANCO' | null {
+  if (!pm) return null;
+  const v = pm.toUpperCase();
+  if (v.includes('EFECTIVO') || v.includes('CAJA CHICA')) return 'CAJA';
+  if (v.includes('TRANSFERENCIA') || v.includes('BANCARIA') || v === 'BANCO') return 'BANCO';
+  if (v.includes('MERCADO PAGO') || v.includes('MERCADO_PAGO') || v.includes('TARJETA') || v.includes('DEBITO') || v.includes('DÉBITO') || v.includes('CREDITO') || v.includes('CRÉDITO') || v.includes('DIGITAL')) return 'MERCADO_PAGO';
+  return null;
+}
+
+const currentMonthKey = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
 interface GastronomyContextType {
   role: UserRole;
@@ -55,6 +70,13 @@ interface GastronomyContextType {
   addBankMovement: (bm: Omit<BankMovement, 'id'>) => void;
   editBankMovement: (id: string, bmData: Partial<BankMovement>) => void;
   deleteBankMovement: (id: string) => void;
+  // Libro mayor de Caja y MercadoPago (equivalente de bankMovements para esas dos cuentas)
+  cashMovements: CashMovement[];
+  // Saldos centralizados — única fuente de verdad, usada por Dashboard, Ventas, Bancos y el Asistente IA
+  cajaMayorBalance: number;
+  mercadoPagoBalance: number;
+  bancosBalance: number;
+  bancosPorEntidad: Record<string, number>;
   // Computed KPIs
   totalSalesNetMonth: number;
   totalPurchasesMonth: number;
@@ -238,6 +260,28 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT_MESSAGES);
   const [initialBalances, setInitialBalances] = useState<InitialBalance[]>(INITIAL_INITIAL_BALANCES);
   const [bankMovements, setBankMovements] = useState<BankMovement[]>(INITIAL_BANK_MOVEMENTS);
+  const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
+
+  // Registra un movimiento de Caja o MercadoPago. Es el único lugar del código
+  // que debe escribir en cashMovements — todas las funciones de venta, pago,
+  // gasto y adelanto pasan por acá en vez de tocar saldos "a mano".
+  const pushCashMovement = (cm: Omit<CashMovement, 'id'>) => {
+    setCashMovements(prev => {
+      const updated = [{ ...cm, id: `cm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}` }, ...prev];
+      try { localStorage.setItem('gastro_cash_movements', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  // Quita cualquier movimiento de caja/MP ya generado para un origen dado
+  // (por ejemplo, una venta editada) antes de volver a registrarlo.
+  const removeCashMovementsBySource = (sourceModule: CashMovement['sourceModule'], sourceId: string) => {
+    setCashMovements(prev => {
+      const updated = prev.filter(cm => !(cm.sourceModule === sourceModule && cm.sourceId === sourceId));
+      try { localStorage.setItem('gastro_cash_movements', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
 
   useEffect(() => {
     try {
@@ -287,10 +331,31 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const savedBM = localStorage.getItem('gastro_bank_movements');
       if (savedBM) setBankMovements(JSON.parse(savedBM));
+
+      const savedCM = localStorage.getItem('gastro_cash_movements');
+      if (savedCM) setCashMovements(JSON.parse(savedCM));
     } catch (e) {
       console.error(e);
     }
   }, []);
+
+  // Toda venta cobrada mueve plata a alguna cuenta. EFECTIVO va a Caja; el resto
+  // de los medios (MercadoPago, Débito, Crédito, Transferencia) se agrupa por ahora
+  // como "digital" en MercadoPago, igual que ya hacía la vista de Ventas — separar
+  // Transferencia en su banco específico queda para cuando haya un selector de banco en Ventas.
+  const registerSaleCashMovement = (sale: Sale) => {
+    if (sale.netAmount === 0) return;
+    const accountType: 'CAJA' | 'MERCADO_PAGO' = sale.paymentMethod === 'EFECTIVO' ? 'CAJA' : 'MERCADO_PAGO';
+    pushCashMovement({
+      accountType,
+      date: sale.date,
+      direction: 'INGRESO',
+      concept: `Venta ${sale.channel} (${sale.shift})`,
+      amount: sale.netAmount,
+      sourceModule: 'VENTA',
+      sourceId: sale.id
+    });
+  };
 
   const addSale = (saleData: Omit<Sale, 'id' | 'netAmount'>) => {
     const netAmount = saleData.grossAmount - saleData.commissionAmount;
@@ -300,28 +365,34 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try { localStorage.setItem('gastro_sales', JSON.stringify(updated)); } catch (e) {}
       return updated;
     });
+    registerSaleCashMovement(newSale);
   };
 
   const editSale = (id: string, saleData: Partial<Sale>) => {
+    let updatedSale: Sale | undefined;
     setSales(prev => {
       const updated = prev.map(s => {
         if (s.id === id) {
           const grossAmount = saleData.grossAmount ?? s.grossAmount;
           const commissionAmount = saleData.commissionAmount ?? s.commissionAmount;
           const netAmount = grossAmount - commissionAmount;
-          return {
+          updatedSale = {
             ...s,
             ...saleData,
             netAmount,
             lastModifiedBy: role,
             lastModifiedAt: new Date().toISOString()
           };
+          return updatedSale;
         }
         return s;
       });
       try { localStorage.setItem('gastro_sales', JSON.stringify(updated)); } catch (e) {}
       return updated;
     });
+    // Re-generar el movimiento de caja/MP con los datos actualizados de la venta
+    removeCashMovementsBySource('VENTA', id);
+    if (updatedSale) registerSaleCashMovement(updatedSale);
   };
 
   const addSupplier = (supplierData: Omit<Supplier, 'id' | 'balanceDue'>) => {
@@ -380,6 +451,9 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const editPurchase = (id: string, purchaseData: Partial<PurchaseInvoice>) => {
+    const existing = purchases.find(p => p.id === id);
+    const amountChanged = purchaseData.amount !== undefined && existing && purchaseData.amount !== existing.amount;
+
     setPurchases(prev => {
       const updated = prev.map(p => {
         if (p.id === id) {
@@ -395,6 +469,27 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try { localStorage.setItem('gastro_purchases', JSON.stringify(updated)); } catch (err) {}
       return updated;
     });
+
+    // Antes, corregir el monto de una factura no tocaba la deuda del proveedor.
+    // Recalculamos balanceDue desde cero (saldo inicial + facturas - pagos), igual
+    // que ya hace editSupplier, para que quede consistente con el nuevo monto.
+    if (amountChanged && existing) {
+      const supplierId = existing.supplierId;
+      setSuppliers(prevSuppliers => {
+        const updated = prevSuppliers.map(s => {
+          if (s.id !== supplierId) return s;
+          const totalInvoices = purchases
+            .map(p => (p.id === id ? { ...p, ...purchaseData } : p))
+            .filter(p => p.supplierId === supplierId)
+            .reduce((acc, p) => acc + p.amount, 0);
+          const totalPayments = supplierPayments.filter(sp => sp.supplierId === supplierId).reduce((acc, sp) => acc + sp.amount, 0);
+          const initDue = s.initialBalanceDue ?? 0;
+          return { ...s, balanceDue: initDue + totalInvoices - totalPayments };
+        });
+        try { localStorage.setItem('gastro_suppliers', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
+    }
   };
 
   const addSupplierPayment = (paymentData: Omit<SupplierPayment, 'id'>) => {
@@ -438,7 +533,37 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
     }
 
-    // 3. Si el pago se realizó con Cheque (Propio o Tercero), registrarlo/reflejarlo en el módulo Cheques
+    // 3. Descontar el pago de la cuenta real usada (esto es lo que antes faltaba):
+    //    EFECTIVO baja la Caja; TRANSFERENCIA baja el banco indicado en el pago.
+    //    CHEQUE_* y BONIFICACION_ACUERDO no mueven caja/banco de forma inmediata
+    //    (el cheque descuenta el banco recién cuando se marca "cubierto").
+    if (paymentData.paymentMethod === 'EFECTIVO') {
+      pushCashMovement({
+        accountType: 'CAJA',
+        date: paymentData.date,
+        direction: 'EGRESO',
+        concept: `Pago a proveedor: ${paymentData.supplierName}${paymentData.invoiceNumber ? ` (Fact. ${paymentData.invoiceNumber})` : ''}`,
+        amount: paymentData.amount,
+        sourceModule: 'PAGO_PROVEEDOR',
+        sourceId: newPayment.id
+      });
+    } else if (paymentData.paymentMethod === 'TRANSFERENCIA') {
+      if (paymentData.bank) {
+        addBankMovement({
+          bankName: paymentData.bank,
+          date: paymentData.date,
+          type: 'EGRESO',
+          concept: `Pago a proveedor: ${paymentData.supplierName}${paymentData.invoiceNumber ? ` (Fact. ${paymentData.invoiceNumber})` : ''}`,
+          amount: paymentData.amount,
+          referenceNumber: undefined,
+          notes: 'Generado automáticamente desde Proveedores'
+        });
+      } else {
+        console.warn(`Pago por transferencia a ${paymentData.supplierName} sin banco especificado: no se descontó de ningún saldo bancario.`);
+      }
+    }
+
+    // 4. Si el pago se realizó con Cheque (Propio o Tercero), registrarlo/reflejarlo en el módulo Cheques
     if (paymentData.paymentMethod === 'CHEQUE_PROPIO' || paymentData.paymentMethod === 'CHEQUE_TERCERO') {
       const newCheck: Check = {
         id: `c_${Date.now()}`,
@@ -460,6 +585,42 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const registerExpenseMovement = (exp: Expense) => {
+    if (exp.status !== 'PAGADO') return;
+    const kind = classifyPaymentMethod(exp.paymentMethod);
+    if (kind === 'CAJA') {
+      pushCashMovement({
+        accountType: 'CAJA',
+        date: exp.date,
+        direction: 'EGRESO',
+        concept: `Gasto: ${exp.description} (${exp.category})`,
+        amount: exp.amount,
+        sourceModule: 'GASTO',
+        sourceId: exp.id
+      });
+    } else if (kind === 'MERCADO_PAGO') {
+      pushCashMovement({
+        accountType: 'MERCADO_PAGO',
+        date: exp.date,
+        direction: 'EGRESO',
+        concept: `Gasto: ${exp.description} (${exp.category})`,
+        amount: exp.amount,
+        sourceModule: 'GASTO',
+        sourceId: exp.id
+      });
+    } else if (kind === 'BANCO') {
+      const bankToUse = exp.bankName || 'Banco Galicia';
+      addBankMovement({
+        bankName: bankToUse,
+        date: exp.date,
+        type: 'EGRESO',
+        concept: `Gasto: ${exp.description} (${exp.category})`,
+        amount: exp.amount,
+        notes: 'Generado automáticamente desde Gastos'
+      });
+    }
+  };
+
   const addExpense = (expenseData: Omit<Expense, 'id'>) => {
     const newExp: Expense = { ...expenseData, id: `e_${Date.now()}` };
     setExpenses(prev => {
@@ -467,24 +628,29 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try { localStorage.setItem('gastro_expenses', JSON.stringify(updated)); } catch (e) {}
       return updated;
     });
+    registerExpenseMovement(newExp);
   };
 
   const editExpense = (id: string, expenseData: Partial<Expense>) => {
+    let updatedExp: Expense | undefined;
     setExpenses(prev => {
       const updated = prev.map(e => {
         if (e.id === id) {
-          return {
+          updatedExp = {
             ...e,
             ...expenseData,
             lastModifiedBy: role,
             lastModifiedAt: new Date().toISOString()
           };
+          return updatedExp;
         }
         return e;
       });
       try { localStorage.setItem('gastro_expenses', JSON.stringify(updated)); } catch (err) {}
       return updated;
     });
+    removeCashMovementsBySource('GASTO', id);
+    if (updatedExp) registerExpenseMovement(updatedExp);
   };
 
   const addCheck = (checkData: Omit<Check, 'id'>) => {
@@ -684,6 +850,35 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try { localStorage.setItem('gastro_advances', JSON.stringify(updated)); } catch (e) {}
       return updated;
     });
+
+    // 1. Descontar de Caja Chica por defecto (el adelanto es salida de efectivo)
+    pushCashMovement({
+      accountType: 'CAJA',
+      date: advanceData.date,
+      direction: 'EGRESO',
+      concept: `Adelanto de sueldo a ${advanceData.employeeName}`,
+      amount: advanceData.amount,
+      sourceModule: 'ADELANTO',
+      sourceId: newAdv.id
+    });
+
+    // 2. Crear un gasto en el módulo de Gastos para que quede trazable en la categoría ADELANTOS_PERSONAL
+    const linkedExpense: Expense = {
+      id: `e_adv_${Date.now()}`,
+      date: advanceData.date,
+      category: 'ADELANTOS_PERSONAL',
+      type: 'FIJO',
+      description: `Adelanto sueldo: ${advanceData.employeeName}`,
+      amount: advanceData.amount,
+      paymentMethod: 'EFECTIVO (Caja Chica)',
+      dueDate: advanceData.date,
+      status: 'PAGADO'
+    };
+    setExpenses(prev => {
+      const updated = [linkedExpense, ...prev];
+      try { localStorage.setItem('gastro_expenses', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
   };
 
   const addInitialBalance = (ibData: Omit<InitialBalance, 'id'>) => {
@@ -756,13 +951,20 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   };
 
-  // Cálculos de KPIs cruzados
-  const totalSalesNetMonth = sales.reduce((acc, s) => acc + s.netAmount, 0);
-  const totalPurchasesMonth = purchases.reduce((acc, p) => acc + p.amount, 0);
-  const totalLaborMonth = employees.reduce((acc, e) => acc + e.baseSalary, 0);
-  const totalFixedExpensesMonth = expenses.filter(e => e.type === 'FIJO' || e.type === 'SERVICIO').reduce((acc, e) => acc + e.amount, 0);
+  // KPIs del MES EN CURSO (filtrados por AAA-MM para no acumular histórico)
+  const currentKey = currentMonthKey();
+  const salesThisMonth = sales.filter(s => s.date.startsWith(currentKey));
+  const purchasesThisMonth = purchases.filter(p => p.date.startsWith(currentKey));
+  const expensesThisMonth = expenses.filter(e => e.date.startsWith(currentKey));
 
-  const totalCoversMonth = sales.reduce((acc, s) => acc + (s.covers || 0), 0);
+  const totalSalesNetMonth = salesThisMonth.reduce((acc, s) => acc + s.netAmount, 0);
+  const totalPurchasesMonth = purchasesThisMonth.reduce((acc, p) => acc + p.amount, 0);
+  const totalLaborMonth = employees.filter(e => e.active).reduce((acc, e) => acc + e.baseSalary, 0);
+  const totalFixedExpensesMonth = expensesThisMonth
+    .filter(e => e.type === 'FIJO' || e.type === 'SERVICIO')
+    .reduce((acc, e) => acc + e.amount, 0);
+
+  const totalCoversMonth = salesThisMonth.reduce((acc, s) => acc + (s.covers || 0), 0);
   const averageTicketPerCover = totalCoversMonth > 0 ? totalSalesNetMonth / totalCoversMonth : 0;
   const totalSupplierDebt = suppliers.reduce((acc, s) => acc + s.balanceDue, 0);
 
@@ -781,27 +983,32 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     .filter(e => e.status === 'PENDIENTE')
     .reduce((acc, e) => acc + e.amount, 0);
 
-  // Calculos de disponibilidad en tiempo real para la IA
+  // UNICA FUENTE DE VERDAD PARA SALDOS (Caja Mayor, MercadoPago y Bancos)
+  // Combina Saldo Inicial + Libro Mayor Centralizado (cashMovements / bankMovements)
   const initialCash = initialBalances.filter(ib => ib.accountType === 'CAJA').reduce((acc, ib) => acc + ib.amount, 0);
-  const salesCash = sales.filter(s => s.paymentMethod === 'EFECTIVO').reduce((acc, s) => acc + s.netAmount, 0);
-  const expensesCash = expenses.filter(e => {
-    const pm = (e.paymentMethod || '').toUpperCase();
-    return pm.includes('EFECTIVO') || pm.includes('CAJA CHICA');
-  }).reduce((acc, e) => acc + e.amount, 0);
-  const cajaMayorBalance = initialCash + salesCash - expensesCash;
+  const cashNet = cashMovements.filter(cm => cm.accountType === 'CAJA').reduce((acc, cm) => acc + (cm.direction === 'INGRESO' ? cm.amount : -cm.amount), 0);
+  const cajaMayorBalance = initialCash + cashNet;
 
   const initialMP = initialBalances.filter(ib => ib.accountType === 'MERCADO_PAGO').reduce((acc, ib) => acc + ib.amount, 0);
-  const salesMP = sales.filter(s => s.paymentMethod === 'MERCADO_PAGO' || s.paymentMethod === 'DEBITO' || s.paymentMethod === 'CREDITO').reduce((acc, s) => acc + s.netAmount, 0);
-  const expensesMP = expenses.filter(e => {
-    const pm = (e.paymentMethod || '').toUpperCase();
-    return pm.includes('MERCADO PAGO') || pm.includes('TARJETA');
-  }).reduce((acc, e) => acc + e.amount, 0);
-  const mercadoPagoBalance = initialMP + salesMP - expensesMP;
+  const mpNet = cashMovements.filter(cm => cm.accountType === 'MERCADO_PAGO').reduce((acc, cm) => acc + (cm.direction === 'INGRESO' ? cm.amount : -cm.amount), 0);
+  const mercadoPagoBalance = initialMP + mpNet;
 
-  const initialBancos = initialBalances.filter(ib => ib.accountType === 'BANCO').reduce((acc, ib) => acc + ib.amount, 0);
+  const initialBancosTotal = initialBalances.filter(ib => ib.accountType === 'BANCO').reduce((acc, ib) => acc + ib.amount, 0);
   const bmIngresos = bankMovements.filter(bm => bm.type === 'INGRESO').reduce((acc, bm) => acc + bm.amount, 0);
   const bmEgresos = bankMovements.filter(bm => bm.type === 'EGRESO').reduce((acc, bm) => acc + bm.amount, 0);
-  const bancosBalance = initialBancos + bmIngresos - bmEgresos;
+  const bancosBalance = initialBancosTotal + bmIngresos - bmEgresos;
+
+  // Mapa de saldos por entidad bancaria especifica (ej. "Banco Galicia", "Banco Nación", "Macro")
+  const bancosPorEntidad: Record<string, number> = {};
+  initialBalances.filter(ib => ib.accountType === 'BANCO').forEach(ib => {
+    const key = ib.bankName || 'Banco Galicia';
+    bancosPorEntidad[key] = (bancosPorEntidad[key] || 0) + ib.amount;
+  });
+  bankMovements.forEach(bm => {
+    const key = bm.bankName || 'Banco Galicia';
+    const delta = bm.type === 'INGRESO' ? bm.amount : -bm.amount;
+    bancosPorEntidad[key] = (bancosPorEntidad[key] || 0) + delta;
+  });
 
   const sendChatMessage = async (text: string) => {
     const userMsg: ChatMessage = {
@@ -908,6 +1115,11 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         addBankMovement,
         editBankMovement,
         deleteBankMovement,
+        cashMovements,
+        cajaMayorBalance,
+        mercadoPagoBalance,
+        bancosBalance,
+        bancosPorEntidad,
         totalSalesNetMonth,
         totalPurchasesMonth,
         totalLaborMonth,

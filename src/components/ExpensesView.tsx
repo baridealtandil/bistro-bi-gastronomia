@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useGastronomy } from '../context/GastronomyContext';
+import { useGastronomy, classifyPaymentMethod } from '../context/GastronomyContext';
 import { Plus, Search, CheckCircle2, DollarSign, X, CreditCard, Edit2, ShieldCheck } from 'lucide-react';
 import { SearchableCombobox } from './SearchableCombobox';
 import { DateRangePicker } from './DateRangePicker';
@@ -78,6 +78,7 @@ export const ExpensesView: React.FC = () => {
   const [providerName, setProviderName] = useState('');
   const [category, setCategory] = useState('SUPERMERCADO');
   const [paymentMethod, setPaymentMethod] = useState('EFECTIVO (Caja Chica)');
+  const [bankName, setBankName] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -97,18 +98,21 @@ export const ExpensesView: React.FC = () => {
     e.preventDefault();
     if (!providerName || !amount || parseFloat(amount) <= 0) return;
 
+    const finalPaymentMethod = paymentMethod.trim() || 'EFECTIVO (Caja Chica)';
     addExpense({
       date: paymentDate || new Date().toISOString().split('T')[0],
       category: category.trim().toUpperCase() || 'VARIOS & CAJA',
       description: providerName.trim(),
       amount: parseFloat(amount),
-      paymentMethod: paymentMethod.trim() || 'EFECTIVO (Caja Chica)',
+      paymentMethod: finalPaymentMethod,
+      bankName: classifyPaymentMethod(finalPaymentMethod) === 'BANCO' ? (bankName.trim() || undefined) : undefined,
       dueDate: paymentDate || new Date().toISOString().split('T')[0],
       status: 'PAGADO'
     });
 
     setProviderName('');
     setAmount('');
+    setBankName('');
     setShowModal(false);
   };
 
@@ -117,6 +121,7 @@ export const ExpensesView: React.FC = () => {
     setProviderName(exp.description);
     setCategory(exp.category);
     setPaymentMethod(exp.paymentMethod || 'EFECTIVO (Caja Chica)');
+    setBankName(exp.bankName || '');
     setAmount(exp.amount.toString());
     setPaymentDate(exp.date || exp.dueDate || new Date().toISOString().split('T')[0]);
     setShowEditModal(true);
@@ -126,10 +131,12 @@ export const ExpensesView: React.FC = () => {
     e.preventDefault();
     if (!editingExpense || !providerName || !amount || parseFloat(amount) <= 0) return;
 
+    const finalPaymentMethod = paymentMethod.trim() || 'EFECTIVO (Caja Chica)';
     editExpense(editingExpense.id, {
       description: providerName.trim(),
       category: category.trim().toUpperCase() || 'VARIOS & CAJA',
-      paymentMethod: paymentMethod.trim() || 'EFECTIVO (Caja Chica)',
+      paymentMethod: finalPaymentMethod,
+      bankName: classifyPaymentMethod(finalPaymentMethod) === 'BANCO' ? (bankName.trim() || undefined) : undefined,
       amount: parseFloat(amount),
       date: paymentDate
     });
@@ -377,6 +384,22 @@ export const ExpensesView: React.FC = () => {
                 />
               </div>
 
+              {/* Banco de origen: solo si el medio de pago es una transferencia/débito bancario */}
+              {classifyPaymentMethod(paymentMethod) === 'BANCO' && (
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Banco de Origen</label>
+                  <input
+                    type="text"
+                    placeholder="Banco Galicia / Banco Nación / BBVA..."
+                    value={bankName}
+                    onChange={e => setBankName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    required
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">Este monto se descuenta del saldo de ese banco.</span>
+                </div>
+              )}
+
               {/* Categoría */}
               <div>
                 <SearchableCombobox
@@ -470,6 +493,20 @@ export const ExpensesView: React.FC = () => {
                   icon={<CreditCard className="w-3.5 h-3.5 text-emerald-400" />}
                 />
               </div>
+
+              {classifyPaymentMethod(paymentMethod) === 'BANCO' && (
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Banco de Origen</label>
+                  <input
+                    type="text"
+                    placeholder="Banco Galicia / Banco Nación / BBVA..."
+                    value={bankName}
+                    onChange={e => setBankName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    required
+                  />
+                </div>
+              )}
 
               <div>
                 <SearchableCombobox
