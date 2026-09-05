@@ -15,7 +15,10 @@ import {
   ChatMessage,
   InitialBalance,
   BankMovement,
-  CashMovement
+  CashMovement,
+  Partner,
+  PartnerConsumption,
+  PartnerWithdrawal
 } from '../types/gastronomy';
 
 // Interpreta un medio de pago en texto libre (Ventas/Gastos) y dice a qué
@@ -61,6 +64,21 @@ interface GastronomyContextType {
   dishes: Dish[];
   chatMessages: ChatMessage[];
   sendChatMessage: (text: string) => Promise<void>;
+  // Socios: consumo interno no cobrado y su liquidación como Retiro
+  partners: Partner[];
+  addPartner: (partner: Omit<Partner, 'id'>) => void;
+  editPartner: (id: string, partnerData: Partial<Partner>) => void;
+  partnerConsumptions: PartnerConsumption[];
+  addPartnerConsumption: (consumption: Omit<PartnerConsumption, 'id' | 'settled' | 'settlementId'>) => void;
+  partnerWithdrawals: PartnerWithdrawal[];
+  addPartnerWithdrawal: (withdrawal: {
+    partnerId: string;
+    date: string;
+    cashAmount?: number;
+    cashAccountType?: 'CAJA' | 'MERCADO_PAGO' | 'BANCO';
+    bankName?: string;
+    notes?: string;
+  }) => void;
   // Saldos Iniciales & Bancos
   initialBalances: InitialBalance[];
   addInitialBalance: (ib: Omit<InitialBalance, 'id'>) => void;
@@ -237,6 +255,15 @@ const INITIAL_INITIAL_BALANCES: InitialBalance[] = [
   { id: 'ib4', accountType: 'BANCO', bankName: 'Banco Nación', date: '2026-09-01', amount: 620000, notes: 'Saldo apertura Banco Nación' },
 ];
 
+const INITIAL_PARTNERS: Partner[] = [
+  { id: 'soc1', name: 'Socio 1', active: true },
+  { id: 'soc2', name: 'Socio 2', active: true },
+  { id: 'soc3', name: 'Socio 3', active: true },
+];
+
+const INITIAL_PARTNER_CONSUMPTIONS: PartnerConsumption[] = [];
+const INITIAL_PARTNER_WITHDRAWALS: PartnerWithdrawal[] = [];
+
 const INITIAL_BANK_MOVEMENTS: BankMovement[] = [
   { id: 'bm1', bankName: 'Banco Galicia', date: '2026-09-01', type: 'INGRESO', concept: 'Transferencia cliente evento especial', amount: 150000, referenceNumber: 'TR-99812', notes: 'Seña evento privado' },
   { id: 'bm2', bankName: 'Banco Galicia', date: '2026-09-02', type: 'EGRESO', concept: 'Depósito para cubrir cheque N° CHK-009812', amount: 250000, referenceNumber: 'DEP-4421', notes: 'Cobertura de cheque proveedor carnes' },
@@ -261,6 +288,9 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [initialBalances, setInitialBalances] = useState<InitialBalance[]>(INITIAL_INITIAL_BALANCES);
   const [bankMovements, setBankMovements] = useState<BankMovement[]>(INITIAL_BANK_MOVEMENTS);
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
+  const [partners, setPartners] = useState<Partner[]>(INITIAL_PARTNERS);
+  const [partnerConsumptions, setPartnerConsumptions] = useState<PartnerConsumption[]>(INITIAL_PARTNER_CONSUMPTIONS);
+  const [partnerWithdrawals, setPartnerWithdrawals] = useState<PartnerWithdrawal[]>(INITIAL_PARTNER_WITHDRAWALS);
 
   // Registra un movimiento de Caja o MercadoPago. Es el único lugar del código
   // que debe escribir en cashMovements — todas las funciones de venta, pago,
@@ -334,6 +364,15 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const savedCM = localStorage.getItem('gastro_cash_movements');
       if (savedCM) setCashMovements(JSON.parse(savedCM));
+
+      const savedPartners = localStorage.getItem('gastro_partners');
+      if (savedPartners) setPartners(JSON.parse(savedPartners));
+
+      const savedPC = localStorage.getItem('gastro_partner_consumptions');
+      if (savedPC) setPartnerConsumptions(JSON.parse(savedPC));
+
+      const savedPW = localStorage.getItem('gastro_partner_withdrawals');
+      if (savedPW) setPartnerWithdrawals(JSON.parse(savedPW));
     } catch (e) {
       console.error(e);
     }
@@ -881,6 +920,114 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   };
 
+  const addPartner = (partnerData: Omit<Partner, 'id'>) => {
+    const newPartner: Partner = { ...partnerData, id: `soc_${Date.now()}` };
+    setPartners(prev => {
+      const updated = [...prev, newPartner];
+      try { localStorage.setItem('gastro_partners', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const editPartner = (id: string, partnerData: Partial<Partner>) => {
+    setPartners(prev => {
+      const updated = prev.map(p => p.id === id ? { ...p, ...partnerData } : p);
+      try { localStorage.setItem('gastro_partners', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  // Registra el consumo de un socio que no se cobra en el momento. No genera
+  // ningún movimiento de Venta, Caja ni Banco — es plata que nunca circuló.
+  // Queda "pendiente" hasta que se liquida en un Retiro de Socios.
+  const addPartnerConsumption = (consumptionData: Omit<PartnerConsumption, 'id' | 'settled' | 'settlementId'>) => {
+    const newConsumption: PartnerConsumption = { ...consumptionData, id: `pc_${Date.now()}`, settled: false };
+    setPartnerConsumptions(prev => {
+      const updated = [newConsumption, ...prev];
+      try { localStorage.setItem('gastro_partner_consumptions', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  // Liquida TODO el consumo pendiente de un socio en un único Retiro: marca esos
+  // consumos como saldados (compensación contable, no mueve caja/banco) y, si además
+  // se especifica un monto en efectivo/banco, sí genera el egreso real correspondiente
+  // (mismo mecanismo que usa un Adelanto a empleado o un Pago a proveedor).
+  const addPartnerWithdrawal = (input: {
+    partnerId: string;
+    date: string;
+    cashAmount?: number;
+    cashAccountType?: 'CAJA' | 'MERCADO_PAGO' | 'BANCO';
+    bankName?: string;
+    notes?: string;
+  }) => {
+    const partner = partners.find(p => p.id === input.partnerId);
+    if (!partner) return;
+
+    const pendingConsumptions = partnerConsumptions.filter(pc => pc.partnerId === input.partnerId && !pc.settled);
+    const consumptionAmount = pendingConsumptions.reduce((acc, pc) => acc + pc.amount, 0);
+    const cashAmount = input.cashAmount || 0;
+
+    const withdrawalId = `pw_${Date.now()}`;
+    const newWithdrawal: PartnerWithdrawal = {
+      id: withdrawalId,
+      partnerId: partner.id,
+      partnerName: partner.name,
+      date: input.date,
+      periodLabel: input.date.slice(0, 7),
+      consumptionAmount,
+      cashAmount,
+      cashAccountType: input.cashAccountType,
+      bankName: input.bankName,
+      notes: input.notes
+    };
+
+    setPartnerWithdrawals(prev => {
+      const updated = [newWithdrawal, ...prev];
+      try { localStorage.setItem('gastro_partner_withdrawals', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+
+    // Marcar como liquidados todos los consumos pendientes que entraron en este retiro
+    setPartnerConsumptions(prev => {
+      const updated = prev.map(pc =>
+        (pc.partnerId === input.partnerId && !pc.settled)
+          ? { ...pc, settled: true, settlementId: withdrawalId }
+          : pc
+      );
+      try { localStorage.setItem('gastro_partner_consumptions', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+
+    // Si además se retiró efectivo/banco real (aparte de lo consumido), sí impacta la cuenta real usada
+    if (cashAmount > 0) {
+      if (input.cashAccountType === 'CAJA' || input.cashAccountType === 'MERCADO_PAGO') {
+        pushCashMovement({
+          accountType: input.cashAccountType,
+          date: input.date,
+          direction: 'EGRESO',
+          concept: `Retiro de socio: ${partner.name}`,
+          amount: cashAmount,
+          sourceModule: 'RETIRO_SOCIO',
+          sourceId: withdrawalId
+        });
+      } else if (input.cashAccountType === 'BANCO') {
+        if (input.bankName) {
+          addBankMovement({
+            bankName: input.bankName,
+            date: input.date,
+            type: 'EGRESO',
+            concept: `Retiro de socio: ${partner.name}`,
+            amount: cashAmount,
+            notes: 'Generado automáticamente desde Socios'
+          });
+        } else {
+          console.warn(`Retiro en efectivo/banco de ${partner.name} sin banco especificado: no se descontó de ningún saldo bancario.`);
+        }
+      }
+    }
+  };
+
   const addInitialBalance = (ibData: Omit<InitialBalance, 'id'>) => {
     const newIb: InitialBalance = { ...ibData, id: `ib_${Date.now()}` };
     setInitialBalances(prev => {
@@ -1107,6 +1254,13 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         dishes,
         chatMessages,
         sendChatMessage,
+        partners,
+        addPartner,
+        editPartner,
+        partnerConsumptions,
+        addPartnerConsumption,
+        partnerWithdrawals,
+        addPartnerWithdrawal,
         initialBalances,
         addInitialBalance,
         editInitialBalance,

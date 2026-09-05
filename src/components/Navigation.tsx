@@ -12,7 +12,8 @@ import {
   Users,
   UtensilsCrossed,
   Sparkles,
-  Webhook
+  Webhook,
+  Handshake
 } from 'lucide-react';
 import { useGastronomy } from '../context/GastronomyContext';
 
@@ -24,6 +25,7 @@ export type TabType =
   | 'cheques'
   | 'bancos'
   | 'empleados'
+  | 'socios'
   | 'platos'
   | 'ia'
   | 'make';
@@ -44,6 +46,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
     { id: 'cheques', label: 'Cheques', icon: CheckSquare, adminOnly: false },
     { id: 'bancos', label: 'Bancos', icon: Building2, adminOnly: false },
     { id: 'empleados', label: 'Empleados', icon: Users, adminOnly: true },
+    { id: 'socios', label: 'Socios', icon: Handshake, adminOnly: true },
     { id: 'ia', label: 'Asistente IA', icon: Sparkles, adminOnly: false },
     { id: 'make', label: 'Integración Make', icon: Webhook, adminOnly: true },
   ];

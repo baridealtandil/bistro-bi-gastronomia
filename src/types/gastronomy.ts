@@ -173,8 +173,8 @@ export interface CashMovement {
   direction: 'INGRESO' | 'EGRESO';
   concept: string;
   amount: number;
-  sourceModule: 'VENTA' | 'PAGO_PROVEEDOR' | 'GASTO' | 'ADELANTO';
-  sourceId?: string; // id de la venta/pago/gasto/adelanto que originó este movimiento
+  sourceModule: 'VENTA' | 'PAGO_PROVEEDOR' | 'GASTO' | 'ADELANTO' | 'RETIRO_SOCIO';
+  sourceId?: string; // id de la venta/pago/gasto/adelanto/retiro que originó este movimiento
   notes?: string;
 }
 
@@ -184,4 +184,46 @@ export interface AccountBalances {
   bancos: number;
   bancosPorEntidad: Record<string, number>;
 }
+
+// --- Socios: consumo interno no cobrado, para computar luego como Retiro ---
+
+export interface Partner { // "Socio"
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+// Consumo de comida/bebida de un socio que no se cobra en el momento. No es
+// una Venta (no ingresa plata real) ni un Gasto — queda pendiente hasta que
+// se liquida en un Retiro de Socios, que lo descuenta de su parte.
+export interface PartnerConsumption {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  date: string; // YYYY-MM-DD
+  description: string;
+  amount: number; // valor del consumo (a precio de carta)
+  notes?: string;
+  settled: boolean; // true una vez incluido en un Retiro de Socios
+  settlementId?: string;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
+}
+
+// Retiro de Socios: liquida el consumo acumulado y pendiente de un socio
+// (no mueve caja/banco, es una compensación contable) y opcionalmente
+// registra además un retiro en efectivo/banco real (ese sí mueve caja/banco).
+export interface PartnerWithdrawal {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  date: string;
+  periodLabel: string; // mes que se liquida, ej. "2026-09"
+  consumptionAmount: number; // total de consumos liquidados en este retiro
+  cashAmount: number; // retiro adicional real en efectivo/banco, 0 si no hubo
+  cashAccountType?: 'CAJA' | 'MERCADO_PAGO' | 'BANCO';
+  bankName?: string;
+  notes?: string;
+}
+
 
