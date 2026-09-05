@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { useGastronomy } from '../context/GastronomyContext';
 import { Utensils, Shield, User, Bell, Sparkles, AlertTriangle, Clock, DollarSign, CheckCircle2, X } from 'lucide-react';
 
@@ -95,7 +96,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
           </div>
           <div>
             <h1 className="font-bold text-lg md:text-xl tracking-tight flex items-center gap-2">
-              Bistró BI <span className="text-xs bg-amber-500/20 text-amber-400 font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">Complemento POS</span>
+              <Image src="/cantina-pink-logo.png" alt="Cantina Pink" width={112} height={116} className="h-9 w-auto rounded-md" priority />
+              <span className="text-xs bg-amber-500/20 text-amber-400 font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">Complemento POS</span>
             </h1>
             <p className="text-xs text-slate-400 hidden sm:block">Gestión Financiera, Cheques e IA para Gastronomía</p>
           </div>
