@@ -259,9 +259,13 @@ const INITIAL_INITIAL_BALANCES: InitialBalance[] = [
 ];
 
 const INITIAL_PARTNERS: Partner[] = [
-  { id: 'soc1', name: 'Socio 1', active: true },
-  { id: 'soc2', name: 'Socio 2', active: true },
-  { id: 'soc3', name: 'Socio 3', active: true },
+  { id: 'soc1', name: 'Franco', active: true },
+  { id: 'soc2', name: 'David', active: true },
+  { id: 'soc3', name: 'Gabriel', active: true },
+  // Diego comparte el 50% de Gabriel — no es un socio titular independiente,
+  // así que su consumo se suma al de Gabriel y el Retiro se hace siempre
+  // sobre Gabriel (ver getPartnerGroup / addPartnerWithdrawal más abajo).
+  { id: 'assoc1', name: 'Diego', active: true, linkedToPartnerId: 'soc3', sharePercentage: 50 },
 ];
 
 const INITIAL_PARTNER_CONSUMPTIONS: PartnerConsumption[] = [];
