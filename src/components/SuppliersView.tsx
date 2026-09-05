@@ -431,153 +431,142 @@ export const SuppliersView: React.FC = () => {
         </div>
       </div>
 
-      {/* TARJETAS SUPERIORES DE DEUDAS (SE RECALCULAN SEGÚN EL PROVEEDOR BUSCADO) */}
+      {/* TARJETAS SUPERIORES DE DEUDAS */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-slate-900 border border-rose-900/60 p-4 rounded-2xl space-y-1 bg-rose-950/20">
-          <div className="text-xs font-bold text-rose-400 flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" /> Deuda Meses Anteriores (Agosto)
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
+          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" /> Meses Anteriores
           </div>
-          <div className="text-xl font-black text-rose-400">${augustDebt.toLocaleString('es-AR')}</div>
-          <div className="text-[10px] text-slate-400">
-            {supplierListSearch.trim() !== '' ? 'Deuda previa del proveedor' : 'Facturas impagas de meses previos'}
+          <div className="text-xl font-bold text-rose-400">${augustDebt.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">
+            {supplierListSearch.trim() !== '' ? 'Deuda previa del proveedor' : 'Facturas impagas anteriores'}
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-          <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" /> Deuda Mes Corriente (Septiembre)
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
+          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" /> Mes Corriente
           </div>
-          <div className="text-xl font-black text-white">${septemberDebt.toLocaleString('es-AR')}</div>
-          <div className="text-[10px] text-slate-400">
+          <div className="text-xl font-bold text-slate-100">${septemberDebt.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">
             {supplierListSearch.trim() !== '' ? 'Deuda actual del proveedor' : 'Facturas emitidas este mes'}
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-          <div className="text-xs font-bold text-blue-400 flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" /> Deuda Próximos Meses (Octubre)
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
+          <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" /> Próximos Meses
           </div>
-          <div className="text-xl font-black text-white">${octoberDebt.toLocaleString('es-AR')}</div>
-          <div className="text-[10px] text-slate-400">Vencimientos diferidos</div>
+          <div className="text-xl font-bold text-slate-100">${octoberDebt.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">Vencimientos diferidos</div>
         </div>
 
-        <div className="bg-slate-900 border border-amber-500/30 p-4 rounded-2xl space-y-1 bg-amber-500/5">
-          <div className="text-xs font-bold text-amber-400 flex items-center justify-between">
+        <div className="bg-slate-900/90 border border-amber-500/30 p-4 rounded-xl space-y-1">
+          <div className="text-xs font-semibold text-amber-400/90 flex items-center justify-between">
             <span>Deuda Total Acumulada</span>
-            <DollarSign className="w-4 h-4 text-amber-400" />
+            <DollarSign className="w-3.5 h-3.5 text-amber-400" />
           </div>
-          <div className="text-xl font-black text-amber-400">${totalFilteredDebt.toLocaleString('es-AR')}</div>
-          <div className="text-[10px] text-slate-400">
+          <div className="text-xl font-bold text-amber-400">${totalFilteredDebt.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">
             {supplierListSearch.trim() !== '' ? 'Deuda del proveedor buscado' : 'Sumatoria general de saldos'}
           </div>
         </div>
       </div>
 
-      {/* BUSCADOR UNIFICADO DE PROVEEDORES Y ALMANAQUE DESDE-HASTA */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-          <div className="relative">
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar Proveedor o Rubro</label>
+      {/* TABLA BASE DE PROVEEDORES CON TOOLBAR DE FILTROS INTEGRADOS */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Truck className="w-4 h-4 text-amber-400" /> Base de Proveedores
+            </h3>
+            <span className="text-xs text-slate-400 font-medium">{sortedAndFilteredSuppliers.length} proveedores</span>
+          </div>
+
+          {/* Toolbar integrados */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
             <div className="relative">
-              <Search className="w-4 h-4 text-amber-400 absolute left-3 top-3" />
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="🔍 Buscar proveedor por nombre comercial o rubro..."
+                placeholder="Buscar proveedor por nombre comercial o rubro..."
                 value={supplierListSearch}
                 onChange={e => setSupplierListSearch(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-20 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-500/50 outline-none"
               />
-              {supplierListSearch && (
-                <button
-                  onClick={() => setSupplierListSearch('')}
-                  className="absolute right-2.5 top-2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-2 py-1 rounded-lg border border-slate-700 transition-colors"
-                >
-                  Limpiar
-                </button>
-              )}
+            </div>
+
+            <div>
+              <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(s, e) => {
+                  setStartDate(s);
+                  setEndDate(e);
+                }}
+              />
             </div>
           </div>
 
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">📅 Seleccionar Período (Desde - Hasta)</label>
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onChange={(s, e) => {
-                setStartDate(s);
-                setEndDate(e);
-              }}
-            />
-          </div>
-        </div>
-
-        {(supplierListSearch || startDate || endDate) && (
-          <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
-            <span className="text-[11px] text-amber-400 font-semibold">
-              Filtros activos ({sortedAndFilteredSuppliers.length} proveedores listados)
-            </span>
-            <button
-              onClick={() => {
-                setSupplierListSearch('');
-                setStartDate('');
-                setEndDate('');
-              }}
-              className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 font-medium"
-            >
-              <X className="w-3 h-3" /> Limpiar Todos los Filtros
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* TABLA BASE DE PROVEEDORES */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white">Base de Proveedores (Orden Alfabético)</h3>
-          <span className="text-xs text-slate-400">{sortedAndFilteredSuppliers.length} proveedores listados</span>
+          {(supplierListSearch || startDate || endDate) && (
+            <div className="flex items-center justify-end pt-1">
+              <button
+                onClick={() => {
+                  setSupplierListSearch('');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="text-[11px] text-slate-400 hover:text-amber-400 font-medium transition-colors"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <thead className="bg-slate-950/80 text-slate-400 font-medium border-b border-slate-800">
               <tr>
-                <th className="p-3">Nombre Comercial</th>
-                <th className="p-3">Rubro / Categoría</th>
-                <th className="p-3">Plazo de Pago</th>
-                <th className="p-3">Saldo Pendiente</th>
-                <th className="p-3">Acciones</th>
+                <th className="py-3 px-4">Nombre Comercial</th>
+                <th className="py-3 px-4">Rubro / Categoría</th>
+                <th className="py-3 px-4">Plazo</th>
+                <th className="py-3 px-4 text-right">Saldo Pendiente</th>
+                <th className="py-3 px-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {sortedAndFilteredSuppliers.length > 0 ? (
                 sortedAndFilteredSuppliers.map(sup => (
-                  <tr key={sup.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3 font-bold text-white text-sm">
-                      <div>{sup.name}</div>
-                      {sup.lastModifiedBy && (
-                        <span className="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-semibold mt-0.5" title={`Editado el ${sup.lastModifiedAt ? new Date(sup.lastModifiedAt).toLocaleString() : ''}`}>
-                          <ShieldCheck className="w-2.5 h-2.5 text-amber-400" /> Editado por {sup.lastModifiedBy}
-                        </span>
-                      )}
+                  <tr key={sup.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <span>{sup.name}</span>
+                        {sup.lastModifiedBy && (
+                          <span title={`Editado por ${sup.lastModifiedBy} el ${sup.lastModifiedAt ? new Date(sup.lastModifiedAt).toLocaleString() : ''}`} className="inline-flex shrink-0">
+                            <ShieldCheck className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400 cursor-help" />
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="p-3">
-                      <span className="bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px] border border-slate-700">
+                    <td className="py-3 px-4">
+                      <span className="bg-slate-800 text-slate-300 font-medium px-2 py-0.5 rounded text-[10px] border border-slate-700">
                         {sup.category}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-400">{sup.paymentTermDays} días</td>
-                    <td className="p-3 font-black text-sm">
+                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">{sup.paymentTermDays} días</td>
+                    <td className="py-3 px-4 text-right font-mono font-bold text-sm whitespace-nowrap">
                       {(() => {
                         const realBal = getSupplierLedgerMovements(sup).finalSaldo;
                         return realBal > 0 ? (
-                          <span className="text-rose-400 font-black">${realBal.toLocaleString('es-AR')}</span>
+                          <span className="text-rose-400">${realBal.toLocaleString('es-AR')}</span>
                         ) : realBal < 0 ? (
                           <div>
-                            <span className="text-emerald-400 font-black">-${Math.abs(realBal).toLocaleString('es-AR')}</span>
-                            <span className="block text-[9px] text-emerald-400 font-medium">Pago a cuenta / A favor</span>
+                            <span className="text-emerald-400">-${Math.abs(realBal).toLocaleString('es-AR')}</span>
+                            <span className="block text-[9px] text-emerald-400/80 font-normal">A favor</span>
                           </div>
                         ) : (
-                          <span className="text-slate-400 font-bold">$0</span>
+                          <span className="text-slate-400 font-normal">$0</span>
                         );
                       })()}
                       {(sup.initialBalanceDue || 0) > 0 && (

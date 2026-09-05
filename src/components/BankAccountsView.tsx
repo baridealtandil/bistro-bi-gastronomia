@@ -241,61 +241,61 @@ export const BankAccountsView: React.FC = () => {
 
       {/* TARJETAS RESUMEN DE SALDOS REALES */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-400 font-bold">Total Ingresos / Depósitos</span>
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-slate-400 font-semibold">Total Ingresos / Depósitos</span>
             <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
           </div>
-          <p className="text-xl font-black text-emerald-400">+${totalSummary.totalIngresos.toLocaleString('es-AR')}</p>
-          <span className="text-[10px] text-emerald-400/70">Acreditaciones y cobros bancarios</span>
+          <p className="text-xl font-bold text-emerald-400">+${totalSummary.totalIngresos.toLocaleString('es-AR')}</p>
+          <span className="text-[10px] text-slate-500">Acreditaciones y cobros bancarios</span>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-          <div className="flex items-center justify-between mb-2">
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-md">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-slate-400 font-semibold">Total Egresos / Débitos</span>
             <ArrowUpRight className="w-4 h-4 text-rose-400" />
           </div>
-          <p className="text-xl font-black text-rose-400">-${totalSummary.totalEgresos.toLocaleString('es-AR')}</p>
-          <span className="text-[10px] text-rose-400/70">Pagos, comisiones y débitos</span>
+          <p className="text-xl font-bold text-rose-400">-${totalSummary.totalEgresos.toLocaleString('es-AR')}</p>
+          <span className="text-[10px] text-slate-500">Pagos, comisiones y débitos</span>
         </div>
 
-        <div className="bg-slate-900 border border-indigo-500/30 bg-indigo-500/5 p-4 rounded-2xl shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-indigo-300 font-bold">Saldo Real Disponible en Banco</span>
-            <DollarSign className="w-4 h-4 text-indigo-400" />
+        <div className="bg-slate-900/90 border border-amber-500/30 p-4 rounded-xl shadow-md">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-amber-400/90 font-semibold">Saldo Real Disponible en Banco</span>
+            <DollarSign className="w-4 h-4 text-amber-400" />
           </div>
-          <p className="text-2xl font-black text-indigo-400">${totalSummary.currentBalance.toLocaleString('es-AR')}</p>
-          <span className="text-[10px] text-indigo-300/70">Saldo bancario líquido actual</span>
+          <p className="text-2xl font-bold text-amber-400">${totalSummary.currentBalance.toLocaleString('es-AR')}</p>
+          <span className="text-[10px] text-slate-500">Saldo bancario líquido actual</span>
         </div>
       </div>
 
       {/* TARJETAS INDIVIDUALES SEPARADAS POR ENTIDAD BANCARIA */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-          <Building className="w-4 h-4 text-amber-400" /> Cuentas Bancarias por Entidad (Saldos Individuales)
+      <div className="space-y-3">
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+          <Building className="w-3.5 h-3.5 text-slate-400" /> Saldos por Entidad Bancaria
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {allBankNames.map(bn => {
             const bSummary = getBankSummary(bn);
             return (
-              <div key={bn} className={`bg-slate-900 border ${selectedBank === bn ? 'border-amber-500/80 bg-amber-500/5' : 'border-slate-800'} p-4 rounded-2xl space-y-2 shadow-lg hover:border-slate-700 transition-all`}>
+              <div key={bn} className={`bg-slate-900 border ${selectedBank === bn ? 'border-amber-500/60 bg-amber-500/5' : 'border-slate-800'} p-4 rounded-xl space-y-2 shadow-md hover:border-slate-700 transition-colors`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
                     🏦 {bn}
                   </span>
                   <button
                     onClick={() => setSelectedBank(selectedBank === bn ? 'ALL' : bn)}
-                    className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded-lg border border-slate-700 font-semibold"
+                    className="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-medium transition-colors"
                   >
                     {selectedBank === bn ? 'Ver Todos' : 'Filtrar'}
                   </button>
                 </div>
-                <div className="text-xl font-black text-white">
+                <div className="text-lg font-bold text-slate-100">
                   ${bSummary.currentBalance.toLocaleString('es-AR')}
                 </div>
-                <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-400 pt-1 border-t border-slate-800/80">
-                  <div>Ingresos: <span className="text-emerald-400 font-bold">+${bSummary.totalIngresos.toLocaleString('es-AR')}</span></div>
-                  <div>Egresos: <span className="text-rose-400 font-bold">-${bSummary.totalEgresos.toLocaleString('es-AR')}</span></div>
+                <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-400 pt-1.5 border-t border-slate-800/80">
+                  <div>Ingresos: <span className="text-emerald-400 font-semibold">+${bSummary.totalIngresos.toLocaleString('es-AR')}</span></div>
+                  <div>Egresos: <span className="text-rose-400 font-semibold">-${bSummary.totalEgresos.toLocaleString('es-AR')}</span></div>
                 </div>
               </div>
             );
@@ -303,143 +303,135 @@ export const BankAccountsView: React.FC = () => {
         </div>
       </div>
 
-      {/* FILTROS CON ALMANAQUE Y BÚSQUEDA DE CONCEPTOS */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-4 shadow-xl">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pb-2 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-amber-400" />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider">Filtros de Búsqueda Bancaria</h3>
-          </div>
-          <DateRangePicker
-            startDate={startDate}
-            endDate={endDate}
-            onChange={(start, end) => {
-              setStartDate(start);
-              setEndDate(end);
-            }}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Selector de Banco */}
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Banco / Cuenta</label>
-            <select
-              value={selectedBank}
-              onChange={e => setSelectedBank(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-semibold"
-            >
-              <option value="ALL">🏦 Todos los Bancos</option>
-              {allBankNames.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
+      {/* TABLA DE MOVIMIENTOS BANCARIOS CON FILTROS INTEGRADOS */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              Historial de Movimientos Bancarios
+            </h3>
+            <span className="text-xs text-slate-400 font-medium">{filteredMovements.length} movimientos</span>
           </div>
 
-          {/* Selector de Tipo (Ingreso / Egreso) */}
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Tipo de Movimiento</label>
-            <select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value as any)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-semibold"
-            >
-              <option value="ALL">Todos los Movimientos</option>
-              <option value="INGRESO">🟢 Ingresos / Créditos</option>
-              <option value="EGRESO">🔴 Egresos / Débitos</option>
-            </select>
-          </div>
-
-          {/* Buscador de Concepto / Referencia */}
-          <div className="relative">
-            <label className="text-xs text-slate-400 block mb-1">Buscar por Concepto / N° Referencia</label>
+          {/* Toolbar de filtros integrados */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-1">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="Ej. Cheque N° 9912, Comisión..."
+                placeholder="Buscar por concepto o N°..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-500/50 outline-none"
+              />
+            </div>
+
+            <div>
+              <select
+                value={selectedBank}
+                onChange={e => setSelectedBank(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 focus:border-amber-500/50 outline-none"
+              >
+                <option value="ALL">Todos los Bancos</option>
+                {allBankNames.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={filterType}
+                onChange={e => setFilterType(e.target.value as any)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 focus:border-amber-500/50 outline-none"
+              >
+                <option value="ALL">Todos los Movimientos</option>
+                <option value="INGRESO">Ingresos / Créditos</option>
+                <option value="EGRESO">Egresos / Débitos</option>
+              </select>
+            </div>
+
+            <div>
+              <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(start, end) => {
+                  setStartDate(start);
+                  setEndDate(end);
+                }}
               />
             </div>
           </div>
-        </div>
 
-        {(selectedBank !== 'ALL' || filterType !== 'ALL' || searchQuery || startDate || endDate) && (
-          <div className="flex justify-end pt-1">
-            <button
-              onClick={() => {
-                setSelectedBank('ALL');
-                setFilterType('ALL');
-                setSearchQuery('');
-                setStartDate('');
-                setEndDate('');
-              }}
-              className="text-[11px] text-amber-400 hover:underline font-semibold flex items-center gap-1"
-            >
-              <RotateCcw className="w-3 h-3" /> Limpiar filtros
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* TABLA LISTADO DE MOVIMIENTOS BANCARIOS */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white">Historial de Movimientos Bancarios</h3>
-          <span className="text-xs text-slate-400 font-semibold">{filteredMovements.length} movimientos</span>
+          {(selectedBank !== 'ALL' || filterType !== 'ALL' || searchQuery || startDate || endDate) && (
+            <div className="flex justify-end pt-1">
+              <button
+                onClick={() => {
+                  setSelectedBank('ALL');
+                  setFilterType('ALL');
+                  setSearchQuery('');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="text-[11px] text-slate-400 hover:text-amber-400 font-medium transition-colors"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <thead className="bg-slate-950/80 text-slate-400 font-medium border-b border-slate-800">
               <tr>
-                <th className="p-3">Banco</th>
-                <th className="p-3">Fecha</th>
-                <th className="p-3">Tipo</th>
-                <th className="p-3">Concepto / Descripción (Manual)</th>
-                <th className="p-3">N° Comprobante / Ref</th>
-                <th className="p-3">Monto</th>
-                <th className="p-3">Observaciones</th>
-                <th className="p-3 text-right">Acción</th>
+                <th className="py-3 px-4">Banco</th>
+                <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4">Tipo</th>
+                <th className="py-3 px-4">Concepto / Descripción</th>
+                <th className="py-3 px-4">N° Ref</th>
+                <th className="py-3 px-4 text-right">Monto</th>
+                <th className="py-3 px-4">Observaciones</th>
+                <th className="py-3 px-4 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {filteredMovements.length > 0 ? (
                 filteredMovements.map(bm => (
-                  <tr key={bm.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3 font-bold text-white whitespace-nowrap">{bm.bankName}</td>
-                    <td className="p-3 text-slate-400 whitespace-nowrap">{bm.date}</td>
-                    <td className="p-3 whitespace-nowrap">
+                  <tr key={bm.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-slate-200 whitespace-nowrap">{bm.bankName}</td>
+                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">{bm.date}</td>
+                    <td className="py-3 px-4 whitespace-nowrap">
                       {bm.type === 'INGRESO' ? (
-                        <span className="flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
+                        <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
                           <ArrowDownLeft className="w-3 h-3" /> INGRESO
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
+                        <span className="inline-flex items-center gap-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
                           <ArrowUpRight className="w-3 h-3" /> EGRESO
                         </span>
                       )}
                     </td>
-                    <td className="p-3 font-bold text-slate-100">{bm.concept}</td>
-                    <td className="p-3 font-mono text-slate-400 whitespace-nowrap">{bm.referenceNumber || '-'}</td>
-                    <td className={`p-3 font-black text-sm whitespace-nowrap ${bm.type === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <td className="py-3 px-4 font-medium text-slate-100">{bm.concept}</td>
+                    <td className="py-3 px-4 font-mono text-slate-400 whitespace-nowrap">{bm.referenceNumber || '-'}</td>
+                    <td className={`py-3 px-4 text-right font-mono font-bold text-sm whitespace-nowrap ${bm.type === 'INGRESO' ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {bm.type === 'INGRESO' ? '+' : '-'}${bm.amount.toLocaleString('es-AR')}
                     </td>
-                    <td className="p-3 text-slate-400 max-w-xs">
-                      <div>{bm.notes || '-'}</div>
-                      {bm.lastModifiedBy && (
-                        <span className="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-semibold mt-1" title={`Editado el ${bm.lastModifiedAt ? new Date(bm.lastModifiedAt).toLocaleString() : ''}`}>
-                          <ShieldCheck className="w-2.5 h-2.5 text-amber-400" /> Editado por {bm.lastModifiedBy}
-                        </span>
-                      )}
+                    <td className="py-3 px-4 text-slate-400 max-w-xs truncate">
+                      <div className="flex items-center gap-1.5">
+                        <span>{bm.notes || '-'}</span>
+                        {bm.lastModifiedBy && (
+                          <span title={`Editado por ${bm.lastModifiedBy} el ${bm.lastModifiedAt ? new Date(bm.lastModifiedAt).toLocaleString() : ''}`} className="inline-flex shrink-0">
+                            <ShieldCheck className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400 cursor-help" />
+                          </span>
+                        )}
+                      </div>
                     </td>
-                    <td className="p-3 text-right whitespace-nowrap">
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => handleStartEdit(bm)}
-                        className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
-                        title="Modificar movimiento bancario"
+                        className="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
+                        title="Editar movimiento"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>

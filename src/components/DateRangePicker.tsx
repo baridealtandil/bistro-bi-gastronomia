@@ -131,26 +131,25 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   return (
     <div className={`relative ${className}`} ref={containerRef}>
-      {/* Dynamic Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full bg-slate-950 border border-slate-800 hover:border-amber-500/60 rounded-xl p-3 text-xs text-white flex items-center justify-between shadow-inner transition-all group"
+        className="w-full bg-slate-950/80 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 flex items-center justify-between transition-all group shadow-sm"
       >
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
-          <span className="font-bold text-amber-300">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <CalendarIcon className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-400 transition-colors shrink-0" />
+          <span className="font-semibold text-slate-200 truncate">
             {startDate && endDate
-              ? `${formatDisplay(startDate)}  ➔  ${formatDisplay(endDate)}`
+              ? `${formatDisplay(startDate)} - ${formatDisplay(endDate)}`
               : startDate
               ? `Desde: ${formatDisplay(startDate)}`
               : endDate
               ? `Hasta: ${formatDisplay(endDate)}`
-              : 'Ver Todo el Historial (Sin Filtro de Fecha)'}
+              : 'Período: Todo el historial'}
           </span>
         </div>
-        <span className="text-[10px] bg-amber-500/20 text-amber-300 font-semibold px-2.5 py-1 rounded-lg border border-amber-500/30">
-          📅 Abrir Almanaque
+        <span className="text-[10px] text-slate-400 font-medium bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60 shrink-0">
+          Almanaque
         </span>
       </button>
 

@@ -185,184 +185,143 @@ export const ExpensesView: React.FC = () => {
         </button>
       </div>
 
-      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / ALMANAQUE / CATEGORÍA / MEDIO DE PAGO */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-          {/* Buscar por Comercio / Detalle */}
-          <div className="relative">
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar por Comercio / Proveedor / Concepto</label>
+      {/* TABLA DE PAGOS Y EGRESOS CON FILTROS INTEGRADOS */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-slate-800 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                Listado General de Pagos y Egresos Registrados
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {filteredExpenses.length} comprobantes / pagos en el periodo seleccionado.
+              </p>
+            </div>
+            
+            <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit flex items-center gap-1.5">
+              <DollarSign className="w-4 h-4" /> Total Pagado: ${totalFilteredAmount.toLocaleString('es-AR')}
+            </div>
+          </div>
+
+          {/* Toolbar de Filtros Integrados */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-1">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-amber-400 absolute left-3 top-3" />
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="Ej: Depósito, Cheque, Coto..."
+                placeholder="Buscar por comercio, proveedor o concepto..."
                 value={searchProvider}
                 onChange={e => setSearchProvider(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-500 outline-none font-bold"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-500/50 outline-none"
               />
             </div>
-          </div>
 
-          {/* Filtrar por Almanaque Rango de Fechas (Desde - Hasta) */}
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">📅 Seleccionar Período</label>
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onChange={(start, end) => {
-                setStartDate(start);
-                setEndDate(end);
-              }}
-            />
-          </div>
+            <div>
+              <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(start, end) => {
+                  setStartDate(start);
+                  setEndDate(end);
+                }}
+              />
+            </div>
 
-          {/* Filtrar por Origen / Medio de Pago */}
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Origen / Medio de Pago</label>
-            <select
-              value={filterPaymentMethod}
-              onChange={e => setFilterPaymentMethod(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-emerald-400 focus:border-emerald-500 outline-none font-bold"
-            >
-              <option value="ALL">Todos los Medios de Pago</option>
-              {allPaymentMethods.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
+            <div>
+              <select
+                value={filterPaymentMethod}
+                onChange={e => setFilterPaymentMethod(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 focus:border-amber-500/50 outline-none"
+              >
+                <option value="ALL">Todos los Medios de Pago</option>
+                {allPaymentMethods.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
 
-          {/* Filtrar por Categoría */}
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Categoría / Rubro</label>
-            <select
-              value={filterCategory}
-              onChange={e => setFilterCategory(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-amber-400 focus:border-amber-500 outline-none font-medium"
-            >
-              <option value="ALL">Todas las Categorías</option>
-              {allCategories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {(searchProvider || startDate || endDate || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL') && (
-          <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
-            <span className="text-[11px] text-amber-400 font-semibold">Filtros activos</span>
-            <button
-              onClick={() => {
-                setSearchProvider('');
-                setStartDate('');
-                setEndDate('');
-                setFilterCategory('ALL');
-                setFilterPaymentMethod('ALL');
-              }}
-              className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 font-medium"
-            >
-              <X className="w-3 h-3" /> Limpiar Filtros
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* LISTADO / TABLA DE PAGOS REGISTRADOS */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60">
-          <div>
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              Listado General de Pagos y Egresos Registrados
-            </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {filteredExpenses.length} comprobantes / pagos en el periodo seleccionado.
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <div className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20 w-fit flex items-center gap-1">
-              <DollarSign className="w-3.5 h-3.5" /> Total Pagado: ${totalFilteredAmount.toLocaleString('es-AR')}
+            <div>
+              <select
+                value={filterCategory}
+                onChange={e => setFilterCategory(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 focus:border-amber-500/50 outline-none"
+              >
+                <option value="ALL">Todas las Categorías</option>
+                {allCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
           </div>
+
+          {(searchProvider || startDate || endDate || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL') && (
+            <div className="flex items-center justify-end pt-1">
+              <button
+                onClick={() => {
+                  setSearchProvider('');
+                  setStartDate('');
+                  setEndDate('');
+                  setFilterCategory('ALL');
+                  setFilterPaymentMethod('ALL');
+                }}
+                className="text-[11px] text-slate-400 hover:text-amber-400 font-medium transition-colors"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <thead className="bg-slate-950/80 text-slate-400 font-medium border-b border-slate-800">
               <tr>
-                <th className="p-3">Fecha de Pago</th>
-                <th className="p-3">Proveedor / Comercio / Concepto</th>
-                <th className="p-3">
-                  <div className="flex flex-col gap-1">
-                    <span>Origen / Medio de Pago</span>
-                    <select
-                      value={filterPaymentMethod}
-                      onChange={e => setFilterPaymentMethod(e.target.value)}
-                      className="bg-slate-900 border border-slate-700 text-emerald-400 text-[10px] rounded-lg px-2 py-1 font-bold focus:outline-none focus:border-emerald-500 normal-case"
-                    >
-                      <option value="ALL">🔍 Todos los Medios</option>
-                      {allPaymentMethods.map(m => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                  </div>
-                </th>
-                <th className="p-3">
-                  <div className="flex flex-col gap-1">
-                    <span>Categoría / Rubro</span>
-                    <select
-                      value={filterCategory}
-                      onChange={e => setFilterCategory(e.target.value)}
-                      className="bg-slate-900 border border-slate-700 text-amber-400 text-[10px] rounded-lg px-2 py-1 font-bold focus:outline-none focus:border-amber-500 normal-case"
-                    >
-                      <option value="ALL">🔍 Todas las Categorías</option>
-                      {allCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </div>
-                </th>
-                <th className="p-3">Monto Pagado</th>
-                <th className="p-3">Estado / Auditoría</th>
-                <th className="p-3 text-right">Acción</th>
+                <th className="py-3 px-4">Fecha</th>
+                <th className="py-3 px-4">Proveedor / Concepto</th>
+                <th className="py-3 px-4">Medio de Pago</th>
+                <th className="py-3 px-4">Categoría</th>
+                <th className="py-3 px-4 text-right">Monto</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {filteredExpenses.length > 0 ? (
                 filteredExpenses.map(e => (
-                  <tr key={e.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3 font-semibold text-white">{e.date || e.dueDate}</td>
-                    <td className="p-3 font-bold text-amber-300 text-sm">{e.description}</td>
-                    <td className="p-3 font-semibold">
-                      <span className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold flex items-center gap-1 w-fit">
+                  <tr key={e.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-3 px-4 font-semibold text-slate-300 whitespace-nowrap">{e.date || e.dueDate}</td>
+                    <td className="py-3 px-4 font-semibold text-slate-100">{e.description}</td>
+                    <td className="py-3 px-4 font-medium whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
                         <CreditCard className="w-3 h-3 text-emerald-400" />
                         {e.paymentMethod || 'EFECTIVO (Caja Chica)'}
                       </span>
                     </td>
-                    <td className="p-3">
-                      <span className="bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px] border border-slate-700">
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="bg-slate-800 text-slate-300 font-medium px-2 py-0.5 rounded text-[10px] border border-slate-700">
                         {e.category}
                       </span>
                     </td>
-                    <td className="p-3 font-black text-emerald-400 text-sm">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-100 text-sm whitespace-nowrap">
                       ${e.amount.toLocaleString('es-AR')}
                     </td>
-                    <td className="p-3">
-                      <div className="flex flex-col gap-1">
-                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 w-fit">
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5">
+                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold inline-flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3 text-emerald-400" /> PAGADO
                         </span>
                         {e.lastModifiedBy && (
-                          <span className="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-semibold" title={`Editado el ${e.lastModifiedAt ? new Date(e.lastModifiedAt).toLocaleString() : ''}`}>
-                            <ShieldCheck className="w-2.5 h-2.5 text-amber-400" /> Editado por {e.lastModifiedBy}
+                          <span title={`Editado por ${e.lastModifiedBy} el ${e.lastModifiedAt ? new Date(e.lastModifiedAt).toLocaleString() : ''}`} className="inline-flex shrink-0">
+                            <ShieldCheck className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400 cursor-help" />
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
                       <button
                         onClick={() => handleStartEdit(e)}
-                        className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
-                        title="Modificar pago registrado"
+                        className="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
+                        title="Editar pago"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>

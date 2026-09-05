@@ -141,10 +141,10 @@ export const ChecksView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            Control Completo de Cheques Propios Emitidos y Diferidos
+            Gestión y Control de Cheques
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Panorama mensual de vencimientos a 90 días, filtros por banco, fecha y proveedor.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Registro de cheques propios y de terceros, seguimiento de diferidos y vencimientos.
           </p>
         </div>
         <button
@@ -153,193 +153,187 @@ export const ChecksView: React.FC = () => {
             setIssuerOrRecipient('');
             setShowModal(true);
           }}
-          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
+          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
         >
           <Plus className="w-4 h-4" />
-          + Registrar Cheque
+          Registrar Cheque
         </button>
       </div>
 
       {/* TARJETAS DE RESUMEN MENSUAL EN $ (PRÓXIMOS 90 DÍAS) */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-          <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-amber-400" /> Septiembre
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
+          <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" /> Septiembre
           </div>
-          <div className="text-lg font-black text-white">${septTotal.toLocaleString('es-AR')}</div>
-          <div className="text-[9px] text-slate-400">Vencimientos Mes Corriente</div>
+          <div className="text-xl font-bold text-slate-100">${septTotal.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">Mes corriente</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-          <div className="text-[10px] font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-blue-400" /> Octubre
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
+          <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" /> Octubre
           </div>
-          <div className="text-lg font-black text-white">${octTotal.toLocaleString('es-AR')}</div>
-          <div className="text-[9px] text-slate-400">Vencimientos Próximo Mes</div>
+          <div className="text-xl font-bold text-slate-100">${octTotal.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">Próximo mes</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-          <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-indigo-400" /> Noviembre
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
+          <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" /> Noviembre
           </div>
-          <div className="text-lg font-black text-white">${novTotal.toLocaleString('es-AR')}</div>
-          <div className="text-[9px] text-slate-400">Vencimientos en 60 días</div>
+          <div className="text-xl font-bold text-slate-100">${novTotal.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">En 60 días</div>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-2xl space-y-1">
-          <div className="text-[10px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1">
-            <Calendar className="w-3 h-3 text-violet-400" /> Diciembre
+        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-1">
+          <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" /> Diciembre
           </div>
-          <div className="text-lg font-black text-white">${dicTotal.toLocaleString('es-AR')}</div>
-          <div className="text-[9px] text-slate-400">Vencimientos en 90 días</div>
+          <div className="text-xl font-bold text-slate-100">${dicTotal.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">En 90 días</div>
         </div>
 
-        <div className="col-span-2 sm:col-span-1 bg-slate-900 border border-amber-500/30 p-3.5 rounded-2xl space-y-1 bg-amber-500/5">
-          <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
+        <div className="col-span-2 sm:col-span-1 bg-slate-900/90 border border-amber-500/30 p-4 rounded-xl space-y-1">
+          <div className="text-[11px] font-semibold text-amber-400/90 flex items-center justify-between">
             <span>Total 90 Días</span>
             <DollarSign className="w-3.5 h-3.5 text-amber-400" />
           </div>
-          <div className="text-lg font-black text-amber-400">${total90Days.toLocaleString('es-AR')}</div>
-          <div className="text-[9px] text-slate-400">Compromisos Totales</div>
+          <div className="text-xl font-bold text-amber-400">${total90Days.toLocaleString('es-AR')}</div>
+          <div className="text-[10px] text-slate-500">Compromisos totales</div>
         </div>
       </div>
 
-      {/* BARRA DE FILTROS AVANZADOS */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3">
-        <div className="text-xs font-bold text-slate-300 flex items-center gap-2 border-b border-slate-800 pb-2">
-          <Filter className="w-4 h-4 text-amber-400" />
-          Filtros de Búsqueda y Rango de Fechas
-        </div>
+      {/* TABLA CON TOOLBAR DE FILTROS INTEGRADA */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div className="p-4 border-b border-slate-800 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <CheckSquare className="w-4 h-4 text-amber-400" />
+              Listado de Cheques Registrados
+            </h3>
+            <span className="text-xs text-slate-400 font-medium">{filteredChecks.length} registros</span>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs items-end">
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1">Buscar Proveedor o N°</label>
+          {/* Barra de búsqueda y controles integrados en la cabecera de la tabla */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-1">
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
               <input
                 type="text"
-                placeholder="Nombre o N° Cheque..."
+                placeholder="Buscar por proveedor o N°..."
                 value={searchSupplier}
                 onChange={e => setSearchSupplier(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-2 py-2 text-xs text-white focus:border-amber-500 outline-none"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-500/50 outline-none"
+              />
+            </div>
+
+            <div>
+              <select
+                value={filterBank}
+                onChange={e => setFilterBank(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 focus:border-amber-500/50 outline-none"
+              >
+                <option value="ALL">Todos los Bancos</option>
+                {uniqueBanks.map(b => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <select
+                value={filterType}
+                onChange={e => setFilterType(e.target.value as any)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-slate-300 focus:border-amber-500/50 outline-none font-medium"
+              >
+                <option value="ALL">Todos los Tipos</option>
+                <option value="PROPIO">Propios Emitidos</option>
+                <option value="TERCERO">De Terceros</option>
+              </select>
+            </div>
+
+            <div>
+              <DateRangePicker
+                startDate={startDate}
+                endDate={endDate}
+                onChange={(s, e) => {
+                  setStartDate(s);
+                  setEndDate(e);
+                }}
               />
             </div>
           </div>
 
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1">Filtrar por Banco</label>
-            <select
-              value={filterBank}
-              onChange={e => setFilterBank(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-            >
-              <option value="ALL">Todos los Bancos</option>
-              {uniqueBanks.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1">Tipo de Cheque</label>
-            <select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value as any)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-semibold text-amber-400"
-            >
-              <option value="ALL">Todos los Tipos</option>
-              <option value="PROPIO">Propios Emitidos</option>
-              <option value="TERCERO">De Terceros</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">📅 Seleccionar Período (Desde - Hasta)</label>
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onChange={(s, e) => {
-                setStartDate(s);
-                setEndDate(e);
-              }}
-            />
-          </div>
-        </div>
-
-        {(filterBank !== 'ALL' || filterType !== 'ALL' || searchSupplier || startDate || endDate) && (
-          <div className="flex items-center justify-end pt-1">
-            <button
-              onClick={() => {
-                setFilterBank('ALL');
-                setFilterType('ALL');
-                setFilterStatus('ALL');
-                setSearchSupplier('');
-                setStartDate('');
-                setEndDate('');
-              }}
-              className="text-[11px] text-amber-400 hover:underline font-semibold"
-            >
-              Limpiar todos los filtros
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* TABLA EN FORMATO LISTADO COMPLETO DE CHEQUES */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white">Listado General de Cheques Registrados</h3>
-          <span className="text-xs text-slate-400 font-semibold">{filteredChecks.length} cheques listados</span>
+          {(filterBank !== 'ALL' || filterType !== 'ALL' || searchSupplier || startDate || endDate) && (
+            <div className="flex items-center justify-end pt-1">
+              <button
+                onClick={() => {
+                  setFilterBank('ALL');
+                  setFilterType('ALL');
+                  setFilterStatus('ALL');
+                  setSearchSupplier('');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="text-[11px] text-slate-400 hover:text-amber-400 font-medium transition-colors"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 uppercase font-semibold border-b border-slate-800">
+            <thead className="bg-slate-950/80 text-slate-400 font-medium border-b border-slate-800">
               <tr>
-                <th className="p-3">Tipo</th>
-                <th className="p-3">N° Cheque</th>
-                <th className="p-3">Banco</th>
-                <th className="p-3">Proveedor / Destinatario</th>
-                <th className="p-3">Fecha Emisión</th>
-                <th className="p-3">Fecha Vencimiento</th>
-                <th className="p-3">Monto</th>
-                <th className="p-3">Estado</th>
-                <th className="p-3">Notas / Detalle</th>
-                <th className="p-3 text-right">Acción</th>
+                <th className="py-3 px-4">Tipo</th>
+                <th className="py-3 px-4">N° Cheque</th>
+                <th className="py-3 px-4">Banco</th>
+                <th className="py-3 px-4">Proveedor / Destinatario</th>
+                <th className="py-3 px-4">Emisión</th>
+                <th className="py-3 px-4">Vencimiento</th>
+                <th className="py-3 px-4 text-right">Monto</th>
+                <th className="py-3 px-4 text-center">Estado</th>
+                <th className="py-3 px-4">Notas</th>
+                <th className="py-3 px-4 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {filteredChecks.length > 0 ? (
                 filteredChecks.map(c => (
-                  <tr key={c.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3">
+                  <tr key={c.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="py-3 px-4">
                       {c.type === 'PROPIO' ? (
-                        <span className="flex items-center gap-1 bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
+                        <span className="inline-flex items-center gap-1 bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
                           <ArrowUpRight className="w-3 h-3" /> PROPIO
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-bold text-[10px] w-fit">
+                        <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
                           <ArrowDownLeft className="w-3 h-3" /> TERCERO
                         </span>
                       )}
                     </td>
-                    <td className="p-3 font-mono font-bold text-white whitespace-nowrap">{c.number}</td>
-                    <td className="p-3 text-slate-200 font-medium whitespace-nowrap">{c.bank}</td>
-                    <td className="p-3 text-slate-100 font-bold">{c.issuerOrRecipient}</td>
-                    <td className="p-3 text-slate-400 whitespace-nowrap">{c.issueDate}</td>
-                    <td className="p-3 font-bold text-amber-400 whitespace-nowrap">{c.dueDate}</td>
-                    <td className="p-3 text-white font-black text-sm">${c.amount.toLocaleString('es-AR')}</td>
-                    <td className="p-3 whitespace-nowrap">
+                    <td className="py-3 px-4 font-mono font-medium text-slate-200 whitespace-nowrap">{c.number}</td>
+                    <td className="py-3 px-4 text-slate-300 font-medium whitespace-nowrap">{c.bank}</td>
+                    <td className="py-3 px-4 text-slate-100 font-semibold">{c.issuerOrRecipient}</td>
+                    <td className="py-3 px-4 text-slate-400 whitespace-nowrap">{c.issueDate}</td>
+                    <td className="py-3 px-4 font-medium text-amber-400 whitespace-nowrap">{c.dueDate}</td>
+                    <td className="py-3 px-4 text-right font-mono text-slate-100 font-bold text-sm">
+                      ${c.amount.toLocaleString('es-AR')}
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
                       <button
                         onClick={() => toggleCheckCovered(c.id)}
-                        className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all shadow ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
                           c.status === 'CUBIERTO' || c.status === 'PAGADO'
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
                             : c.status === 'ENDOSADO'
-                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
-                            : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-500/40'
+                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
                         }`}
-                        title={c.status === 'CUBIERTO' || c.status === 'PAGADO' ? "Haz clic para DESMARCAR (restituye el saldo al banco)" : "Haz clic para MARCAR COMO CUBIERTO (descuenta el saldo del banco)"}
+                        title={c.status === 'CUBIERTO' || c.status === 'PAGADO' ? "Haz clic para desmarcar (restituye saldo al banco)" : "Haz clic para marcar como cubierto (descuenta saldo del banco)"}
                       >
                         {c.status === 'CUBIERTO' || c.status === 'PAGADO' ? (
                           <>
@@ -359,31 +353,31 @@ export const ChecksView: React.FC = () => {
                         )}
                       </button>
                     </td>
-                    <td className="p-3 text-slate-400 max-w-xs">
-                      <div>{c.notes || '-'}</div>
-                      {c.lastModifiedBy && (
-                        <span className="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-semibold mt-1" title={`Editado el ${c.lastModifiedAt ? new Date(c.lastModifiedAt).toLocaleString() : ''}`}>
-                          <ShieldCheck className="w-2.5 h-2.5 text-amber-400" /> Editado por {c.lastModifiedBy}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleStartEdit(c)}
-                          className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
-                          title="Modificar cheque registrado"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
+                    <td className="py-3 px-4 text-slate-400 max-w-xs truncate">
+                      <div className="flex items-center gap-1.5">
+                        <span>{c.notes || '-'}</span>
+                        {c.lastModifiedBy && (
+                          <span title={`Editado por ${c.lastModifiedBy} el ${c.lastModifiedAt ? new Date(c.lastModifiedAt).toLocaleString() : ''}`} className="inline-flex shrink-0">
+                            <ShieldCheck className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400 cursor-help" />
+                          </span>
+                        )}
                       </div>
+                    </td>
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <button
+                        onClick={() => handleStartEdit(c)}
+                        className="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
+                        title="Editar cheque"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td colSpan={10} className="p-6 text-center text-slate-500 italic text-xs">
-                    No se encontraron cheques que coincidan con los filtros aplicados.
+                    No se encontraron cheques que coincidan con los filtros.
                   </td>
                 </tr>
               )}
