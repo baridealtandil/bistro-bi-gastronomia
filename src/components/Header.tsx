@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Utensils, Shield, User, Bell, Sparkles, AlertTriangle, Clock, DollarSign, CheckCircle2, X } from 'lucide-react';
+import { Shield, User, Bell, Sparkles, AlertTriangle, Clock, DollarSign, CheckCircle2, X } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAiChat: () => void;
@@ -91,12 +91,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Brand / Title */}
         <div className="flex items-center space-x-3">
-          <div className="bg-amber-500 p-2 rounded-xl text-slate-950 font-bold flex items-center justify-center">
-            <Utensils className="w-5 h-5" />
-          </div>
+          <Image src="/cantina-pink-logo.png" alt="Cantina Pink" width={168} height={174} className="h-12 md:h-14 w-auto rounded-lg shrink-0" priority />
           <div>
             <h1 className="font-bold text-lg md:text-xl tracking-tight flex items-center gap-2">
-              <Image src="/cantina-pink-logo.png" alt="Cantina Pink" width={112} height={116} className="h-9 w-auto rounded-md" priority />
+              <span className="sr-only">Cantina Pink</span>
               <span className="text-xs bg-amber-500/20 text-amber-400 font-semibold px-2 py-0.5 rounded-full border border-amber-500/30">Complemento POS</span>
             </h1>
             <p className="text-xs text-slate-400 hidden sm:block">Gestión Financiera, Cheques e IA para Gastronomía</p>
