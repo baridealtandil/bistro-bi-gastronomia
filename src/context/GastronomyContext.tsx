@@ -375,15 +375,19 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const savedPartners = localStorage.getItem('gastro_partners');
       if (savedPartners) {
         const parsedPartners: Partner[] = JSON.parse(savedPartners);
-        // Migración única: navegadores que ya tenían guardados los socios
-        // genéricos ("Socio 1/2/3") de antes de cargar a Franco/David/Gabriel/
-        // Diego se actualizan solos a los datos reales la primera vez que
-        // vuelven a abrir esta pantalla. Si el usuario ya editó o agregó algún
-        // socio propio, esta condición deja de cumplirse y no se toca nada.
-        const sonTodosSociosGenericos =
-          parsedPartners.length > 0 &&
-          parsedPartners.every(p => /^Socio \d+$/.test(p.name) && !p.linkedToPartnerId);
-        if (sonTodosSociosGenericos) {
+        // Reparación automática: los socios reales de este negocio son
+        // siempre Franco, David y Gabriel (titulares) más Diego (adherente
+        // de Gabriel). Si a un navegador le falta Franco o David activos —ya
+        // sea porque todavía tiene los "Socio 1/2/3" genéricos de antes, o
+        // porque quedó una carga manual a medio hacer con nombres o
+        // vinculaciones mezcladas—, se reemplaza toda la lista por la
+        // correcta. Una vez que Franco y David ya están cargados bien, esta
+        // condición no se vuelve a cumplir y no se toca nada más.
+        const faltanLosTitularesReales = !(
+          parsedPartners.some(p => p.name === 'Franco' && p.active) &&
+          parsedPartners.some(p => p.name === 'David' && p.active)
+        );
+        if (faltanLosTitularesReales) {
           setPartners(INITIAL_PARTNERS);
           try { localStorage.setItem('gastro_partners', JSON.stringify(INITIAL_PARTNERS)); } catch (e) {}
         } else {
