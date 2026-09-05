@@ -566,8 +566,20 @@ export const SuppliersView: React.FC = () => {
                       </span>
                     </td>
                     <td className="p-3 text-slate-400">{sup.paymentTermDays} días</td>
-                    <td className="p-3 font-black text-rose-400 text-sm">
-                      ${sup.balanceDue.toLocaleString('es-AR')}
+                    <td className="p-3 font-black text-sm">
+                      {(() => {
+                        const realBal = getSupplierLedgerMovements(sup).finalSaldo;
+                        return realBal > 0 ? (
+                          <span className="text-rose-400 font-black">${realBal.toLocaleString('es-AR')}</span>
+                        ) : realBal < 0 ? (
+                          <div>
+                            <span className="text-emerald-400 font-black">-${Math.abs(realBal).toLocaleString('es-AR')}</span>
+                            <span className="block text-[9px] text-emerald-400 font-medium">Pago a cuenta / A favor</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 font-bold">$0</span>
+                        );
+                      })()}
                       {(sup.initialBalanceDue || 0) > 0 && (
                         <span className="block text-[9px] text-slate-500 font-normal">
                           (Inicial: ${(sup.initialBalanceDue || 0).toLocaleString('es-AR')})
@@ -646,11 +658,14 @@ export const SuppliersView: React.FC = () => {
               onChange={e => setSelectedCcSupplierId(e.target.value)}
               className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-400 font-bold focus:outline-none focus:border-amber-500"
             >
-              {suppliers.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name} (Saldo: ${s.balanceDue.toLocaleString('es-AR')})
-                </option>
-              ))}
+              {suppliers.map(s => {
+                const bal = getSupplierLedgerMovements(s).finalSaldo;
+                return (
+                  <option key={s.id} value={s.id}>
+                    {s.name} (Saldo: ${bal.toLocaleString('es-AR')})
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -1091,7 +1106,7 @@ export const SuppliersView: React.FC = () => {
                         className="w-full text-left p-2.5 text-xs hover:bg-amber-500/20 hover:text-amber-300 text-slate-200 transition-colors flex items-center justify-between"
                       >
                         <span className="font-bold">{s.name}</span>
-                        <span className="text-[10px] text-slate-500">Saldo: ${s.balanceDue.toLocaleString('es-AR')}</span>
+                        <span className="text-[10px] text-slate-500">Saldo: ${getSupplierLedgerMovements(s).finalSaldo.toLocaleString('es-AR')}</span>
                       </button>
                     ))}
                   </div>
@@ -1106,7 +1121,7 @@ export const SuppliersView: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span className="text-slate-400 text-[10px] block">Saldo Pendiente:</span>
-                    <span className="font-black text-rose-400 text-sm">${selectedSupplier.balanceDue.toLocaleString('es-AR')}</span>
+                    <span className="font-black text-rose-400 text-sm">${getSupplierLedgerMovements(selectedSupplier).finalSaldo.toLocaleString('es-AR')}</span>
                   </div>
                 </div>
               )}

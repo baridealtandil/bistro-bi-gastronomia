@@ -84,13 +84,13 @@ const INITIAL_SALES: Sale[] = [
 ];
 
 const INITIAL_SUPPLIERS: Supplier[] = [
-  { id: 'sup1', name: 'Distribuidora Carnes del Sur', cuit: '30-71234567-8', category: 'Carnes, Achuras & Pollo', phone: '11-4567-8901', email: 'ventas@carnesdelsur.com', paymentTermDays: 15, balanceDue: 8277575 },
-  { id: 'sup2', name: 'Verdulería Central BAZ', cuit: '20-31987654-3', category: 'Verdulería, Frutas & Hortalizas', phone: '11-5678-1234', email: 'pedidos@verduleriabaz.com', paymentTermDays: 7, balanceDue: 85000 },
-  { id: 'sup3', name: 'Bebidas & Licores Express', cuit: '30-68912345-1', category: 'Bebidas, Vinos, Licores & Cervezas', phone: '11-3456-7890', email: 'proveedores@licoresexpress.com', paymentTermDays: 30, balanceDue: 0 },
-  { id: 'sup4', name: 'BeerTan Cervezas Artesanales', cuit: '30-79812345-6', category: 'Bebidas, Vinos, Licores & Cervezas', phone: '11-9876-5432', email: 'contacto@beertan.com', paymentTermDays: 15, balanceDue: 0 },
-  { id: 'sup5', name: 'Panificadora El Sol', cuit: '30-65432198-7', category: 'Panadería, Pastelería & Bollería', phone: '11-4321-8765', email: 'ventas@panificadoraelsol.com', paymentTermDays: 15, balanceDue: 0 },
-  { id: 'sup6', name: 'Lácteos & Quesos San Martín', cuit: '30-74561238-9', category: 'Lácteos, Quesos & Cremas', phone: '11-8765-4321', email: 'pedidos@lacteossanmartin.com', paymentTermDays: 15, balanceDue: 0 },
-  { id: 'sup7', name: 'Angelani', cuit: '30-71984210-5', category: 'Carnes, Achuras & Pollo', phone: '11-4455-6677', email: 'ventas@angelani.com.ar', paymentTermDays: 15, balanceDue: 0 },
+  { id: 'sup1', name: 'Distribuidora Carnes del Sur', cuit: '30-71234567-8', category: 'Carnes, Achuras & Pollo', phone: '11-4567-8901', email: 'ventas@carnesdelsur.com', paymentTermDays: 15, initialBalanceDue: 7857575, balanceDue: 8277575 },
+  { id: 'sup2', name: 'Verdulería Central BAZ', cuit: '20-31987654-3', category: 'Verdulería, Frutas & Hortalizas', phone: '11-5678-1234', email: 'pedidos@verduleriabaz.com', paymentTermDays: 7, initialBalanceDue: 0, balanceDue: 85000 },
+  { id: 'sup3', name: 'Bebidas & Licores Express', cuit: '30-68912345-1', category: 'Bebidas, Vinos, Licores & Cervezas', phone: '11-3456-7890', email: 'proveedores@licoresexpress.com', paymentTermDays: 30, initialBalanceDue: 0, balanceDue: 0 },
+  { id: 'sup4', name: 'BeerTan Cervezas Artesanales', cuit: '30-79812345-6', category: 'Bebidas, Vinos, Licores & Cervezas', phone: '11-9876-5432', email: 'contacto@beertan.com', paymentTermDays: 15, initialBalanceDue: 0, balanceDue: 0 },
+  { id: 'sup5', name: 'Panificadora El Sol', cuit: '30-65432198-7', category: 'Panadería, Pastelería & Bollería', phone: '11-4321-8765', email: 'ventas@panificadoraelsol.com', paymentTermDays: 15, initialBalanceDue: 0, balanceDue: 0 },
+  { id: 'sup6', name: 'Lácteos & Quesos San Martín', cuit: '30-74561238-9', category: 'Lácteos, Quesos & Cremas', phone: '11-8765-4321', email: 'pedidos@lacteossanmartin.com', paymentTermDays: 15, initialBalanceDue: 0, balanceDue: 0 },
+  { id: 'sup7', name: 'Angelani', cuit: '30-71984210-5', category: 'Carnes, Achuras & Pollo', phone: '11-4455-6677', email: 'ventas@angelani.com.ar', paymentTermDays: 15, initialBalanceDue: 1250000, balanceDue: 1350000 },
 ];
 
 const INITIAL_PURCHASES: PurchaseInvoice[] = [
@@ -124,6 +124,13 @@ const INITIAL_PURCHASES: PurchaseInvoice[] = [
       { description: 'Cerveza Artesanal 500ml (Caja)', qty: 10, unitPrice: 15000 },
       { description: 'Gaseosas 1.5L (Caja)', qty: 4, unitPrice: 15000 },
     ]
+  },
+  {
+    id: 'p4', supplierId: 'sup7', supplierName: 'Angelani', invoiceNumber: 'FC-A-0002-0007812',
+    date: '2026-09-02', dueDate: '2026-09-17', amount: 450000, paidAmount: 0, status: 'PENDIENTE',
+    items: [
+      { description: 'Media res novillo seleccionado (120kg)', qty: 1, unitPrice: 450000 }
+    ]
   }
 ];
 
@@ -138,6 +145,20 @@ const INITIAL_SUPPLIER_PAYMENTS: SupplierPayment[] = [
     paymentMethod: 'TRANSFERENCIA',
     amount: 210000,
     notes: 'Pago total de factura de bebidas por transferencia bancaria'
+  },
+  {
+    id: 'pay2',
+    supplierId: 'sup7',
+    supplierName: 'Angelani',
+    invoiceId: 'p4',
+    invoiceNumber: 'FC-A-0002-0007812',
+    date: '2026-09-02',
+    paymentMethod: 'CHEQUE_PROPIO',
+    amount: 350000,
+    checkNumber: 'CHK-009855',
+    bank: 'Banco Galicia',
+    dueDate: '2026-09-20',
+    notes: 'Pago a cuenta de provisión de carne'
   }
 ];
 
