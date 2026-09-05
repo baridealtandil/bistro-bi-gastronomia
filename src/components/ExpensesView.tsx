@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Plus, Search, CheckCircle2, DollarSign, X, CreditCard } from 'lucide-react';
+import { Plus, Search, CheckCircle2, DollarSign, X, CreditCard, Edit2, ShieldCheck } from 'lucide-react';
 import { SearchableCombobox } from './SearchableCombobox';
 import { DateRangePicker } from './DateRangePicker';
+import { Expense } from '../types/gastronomy';
 
 const COMMON_EXPENSE_PROVIDERS = [
   'Depósito en Banco para Cubrir Cheque',
@@ -47,15 +48,6 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   'HONORARIOS'
 ];
 
-const DEFAULT_EXPENSE_TYPES = [
-  'Depósito en Banco / Cobertura de Cheque',
-  'Gasto de Caja / Varios (Supermercado, Kiosco, etc.)',
-  'Servicio Público',
-  'Gasto Fijo',
-  'Gasto Variable',
-  'Caja Chica'
-];
-
 const DEFAULT_PAYMENT_METHODS = [
   'EFECTIVO (Caja Chica)',
   'TRANSFERENCIA BANCARIA',
@@ -68,21 +60,21 @@ const DEFAULT_PAYMENT_METHODS = [
 ];
 
 export const ExpensesView: React.FC = () => {
-  const { expenses, addExpense } = useGastronomy();
+  const { expenses, addExpense, editExpense, role } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   // Buscador y Filtros de la Tabla
   const [searchProvider, setSearchProvider] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('ALL');
-  const [filterType, setFilterType] = useState('ALL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
   // Form State Modal Registrar Pago
   const [providerName, setProviderName] = useState('');
   const [category, setCategory] = useState('SUPERMERCADO');
-  const [type, setType] = useState('Gasto de Caja / Varios (Supermercado, Kiosco, etc.)');
   const [paymentMethod, setPaymentMethod] = useState('EFECTIVO (Caja Chica)');
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
@@ -99,12 +91,6 @@ export const ExpensesView: React.FC = () => {
     ...expenses.map(e => e.paymentMethod).filter(Boolean) as string[]
   ]));
 
-  // Lista dinámica de tipos de gasto
-  const allTypes = Array.from(new Set([
-    ...DEFAULT_EXPENSE_TYPES,
-    ...expenses.map(e => e.type).filter(Boolean) as string[]
-  ]));
-
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault();
     if (!providerName || !amount || parseFloat(amount) <= 0) return;
@@ -112,7 +98,6 @@ export const ExpensesView: React.FC = () => {
     addExpense({
       date: paymentDate || new Date().toISOString().split('T')[0],
       category: category.trim().toUpperCase() || 'VARIOS & CAJA',
-      type: type.trim() || 'Gasto de Caja / Varios',
       description: providerName.trim(),
       amount: parseFloat(amount),
       paymentMethod: paymentMethod.trim() || 'EFECTIVO (Caja Chica)',
@@ -125,23 +110,47 @@ export const ExpensesView: React.FC = () => {
     setShowModal(false);
   };
 
+  const handleStartEdit = (exp: Expense) => {
+    setEditingExpense(exp);
+    setProviderName(exp.description);
+    setCategory(exp.category);
+    setPaymentMethod(exp.paymentMethod || 'EFECTIVO (Caja Chica)');
+    setAmount(exp.amount.toString());
+    setPaymentDate(exp.date || exp.dueDate || new Date().toISOString().split('T')[0]);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingExpense || !providerName || !amount || parseFloat(amount) <= 0) return;
+
+    editExpense(editingExpense.id, {
+      description: providerName.trim(),
+      category: category.trim().toUpperCase() || 'VARIOS & CAJA',
+      paymentMethod: paymentMethod.trim() || 'EFECTIVO (Caja Chica)',
+      amount: parseFloat(amount),
+      date: paymentDate
+    });
+
+    setEditingExpense(null);
+    setShowEditModal(false);
+  };
+
   // Filtrado de lista
   const filteredExpenses = expenses.filter(e => {
     const matchesProvider = searchProvider.trim() === '' ||
       e.description.toLowerCase().includes(searchProvider.toLowerCase()) ||
       e.category.toLowerCase().includes(searchProvider.toLowerCase()) ||
-      (e.type && e.type.toLowerCase().includes(searchProvider.toLowerCase())) ||
       (e.paymentMethod && e.paymentMethod.toLowerCase().includes(searchProvider.toLowerCase()));
 
     const matchesCategory = filterCategory === 'ALL' || e.category === filterCategory;
     const matchesMethod = filterPaymentMethod === 'ALL' || e.paymentMethod === filterPaymentMethod;
-    const matchesType = filterType === 'ALL' || e.type === filterType;
 
     const expDate = e.date || e.dueDate || '';
     const matchesStartDate = !startDate || expDate >= startDate;
     const matchesEndDate = !endDate || expDate <= endDate;
 
-    return matchesProvider && matchesCategory && matchesMethod && matchesType && matchesStartDate && matchesEndDate;
+    return matchesProvider && matchesCategory && matchesMethod && matchesStartDate && matchesEndDate;
   });
 
   const totalFilteredAmount = filteredExpenses.reduce((acc, e) => acc + e.amount, 0);
@@ -162,7 +171,6 @@ export const ExpensesView: React.FC = () => {
           onClick={() => {
             setProviderName('');
             setCategory('SUPERMERCADO');
-            setType('Gasto de Caja / Varios (Supermercado, Kiosco, etc.)');
             setPaymentMethod('EFECTIVO (Caja Chica)');
             setAmount('');
             setPaymentDate(new Date().toISOString().split('T')[0]);
@@ -175,9 +183,9 @@ export const ExpensesView: React.FC = () => {
         </button>
       </div>
 
-      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / ALMANAQUE / CATEGORÍA / TIPO / MEDIO DE PAGO */}
+      {/* BARRA DE BÚSQUEDA Y FILTROS POR PROVEEDOR / ALMANAQUE / CATEGORÍA / MEDIO DE PAGO */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-lg">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
           {/* Buscar por Comercio / Detalle */}
           <div className="relative">
             <label className="text-[10px] text-slate-400 block mb-1 font-medium">Buscar por Comercio / Proveedor / Concepto</label>
@@ -235,24 +243,9 @@ export const ExpensesView: React.FC = () => {
               ))}
             </select>
           </div>
-
-          {/* Filtrar por Tipo de Gasto */}
-          <div>
-            <label className="text-[10px] text-slate-400 block mb-1 font-medium">Tipo de Pago / Egresos</label>
-            <select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium"
-            >
-              <option value="ALL">Todos los Tipos</option>
-              {allTypes.map(t => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        {(searchProvider || startDate || endDate || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL' || filterType !== 'ALL') && (
+        {(searchProvider || startDate || endDate || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL') && (
           <div className="flex items-center justify-between pt-1 border-t border-slate-800/60">
             <span className="text-[11px] text-amber-400 font-semibold">Filtros activos</span>
             <button
@@ -262,7 +255,6 @@ export const ExpensesView: React.FC = () => {
                 setEndDate('');
                 setFilterCategory('ALL');
                 setFilterPaymentMethod('ALL');
-                setFilterType('ALL');
               }}
               className="text-[10px] text-slate-400 hover:text-white flex items-center gap-1 font-medium"
             >
@@ -272,7 +264,7 @@ export const ExpensesView: React.FC = () => {
         )}
       </div>
 
-      {/* LISTADO / TABLA DE PAGOS Y SERVICIOS REGISTRADOS */}
+      {/* LISTADO / TABLA DE PAGOS REGISTRADOS */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/60">
           <div>
@@ -327,23 +319,9 @@ export const ExpensesView: React.FC = () => {
                     </select>
                   </div>
                 </th>
-                <th className="p-3">
-                  <div className="flex flex-col gap-1">
-                    <span>Tipo de Gasto</span>
-                    <select
-                      value={filterType}
-                      onChange={e => setFilterType(e.target.value)}
-                      className="bg-slate-900 border border-slate-700 text-slate-200 text-[10px] rounded-lg px-2 py-1 font-bold focus:outline-none focus:border-slate-500 normal-case"
-                    >
-                      <option value="ALL">🔍 Todos los Tipos</option>
-                      {allTypes.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  </div>
-                </th>
                 <th className="p-3">Monto Pagado</th>
-                <th className="p-3">Estado</th>
+                <th className="p-3">Estado / Auditoría</th>
+                <th className="p-3 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -363,23 +341,36 @@ export const ExpensesView: React.FC = () => {
                         {e.category}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-400 font-medium">
-                      {e.type}
-                    </td>
                     <td className="p-3 font-black text-emerald-400 text-sm">
                       ${e.amount.toLocaleString('es-AR')}
                     </td>
                     <td className="p-3">
-                      <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" /> PAGADO
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 w-fit">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" /> PAGADO
+                        </span>
+                        {e.lastModifiedBy && (
+                          <span className="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-semibold" title={`Editado el ${e.lastModifiedAt ? new Date(e.lastModifiedAt).toLocaleString() : ''}`}>
+                            <ShieldCheck className="w-2.5 h-2.5 text-amber-400" /> Editado por {e.lastModifiedBy}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => handleStartEdit(e)}
+                        className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
+                        title="Modificar pago registrado"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td colSpan={7} className="p-6 text-center text-slate-500 italic text-xs">
-                    No se encontraron gastos o servicios registrados con los filtros aplicados.
+                    No se encontraron pagos registrados con los filtros aplicados.
                   </td>
                 </tr>
               )}
@@ -388,12 +379,12 @@ export const ExpensesView: React.FC = () => {
         </div>
       </div>
 
-      {/* MODAL REGISTRAR GASTO DE CAJA / SERVICIO */}
+      {/* MODAL REGISTRAR PAGO */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Registrar Gasto de Caja / Servicio</h3>
+              <h3 className="text-base font-bold text-white">Registrar Pago / Salida de Dinero</h3>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
             </div>
 
@@ -405,7 +396,7 @@ export const ExpensesView: React.FC = () => {
                   value={providerName}
                   onChange={setProviderName}
                   options={COMMON_EXPENSE_PROVIDERS}
-                  placeholder="Escribir o buscar (ej. Coto, Panadería, Kiosco)..."
+                  placeholder="Escribir libremente o seleccionar..."
                   allowCustom={true}
                   required={true}
                 />
@@ -418,37 +409,24 @@ export const ExpensesView: React.FC = () => {
                   value={paymentMethod}
                   onChange={setPaymentMethod}
                   options={DEFAULT_PAYMENT_METHODS}
-                  placeholder="Elegir o escribir medio de pago (Efectivo, Transferencia, Cheque)..."
+                  placeholder="Elegir o escribir medio de pago..."
                   allowCustom={true}
                   required={true}
                   icon={<CreditCard className="w-3.5 h-3.5 text-emerald-400" />}
                 />
               </div>
 
-              {/* Categoría y Tipo de Gasto */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <SearchableCombobox
-                    label="Categoría / Rubro"
-                    value={category}
-                    onChange={setCategory}
-                    options={allCategories}
-                    placeholder="Escribir categoría..."
-                    allowCustom={true}
-                    required={true}
-                  />
-                </div>
-                <div>
-                  <SearchableCombobox
-                    label="Tipo de Gasto"
-                    value={type}
-                    onChange={setType}
-                    options={DEFAULT_EXPENSE_TYPES}
-                    placeholder="Escribir tipo..."
-                    allowCustom={true}
-                    required={true}
-                  />
-                </div>
+              {/* Categoría */}
+              <div>
+                <SearchableCombobox
+                  label="Categoría / Rubro"
+                  value={category}
+                  onChange={setCategory}
+                  options={allCategories}
+                  placeholder="Escribir o seleccionar categoría..."
+                  allowCustom={true}
+                  required={true}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -469,7 +447,7 @@ export const ExpensesView: React.FC = () => {
                     type="date"
                     value={paymentDate}
                     onChange={ev => setPaymentDate(ev.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-semibold text-white"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-semibold"
                     required
                   />
                 </div>
@@ -488,6 +466,103 @@ export const ExpensesView: React.FC = () => {
                   className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
                 >
                   Guardar Pago
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MODIFICAR PAGO (AUDITORÍA) */}
+      {showEditModal && editingExpense && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-amber-400 flex items-center gap-2">
+                <Edit2 className="w-4 h-4" /> Modificar Pago Registrado ({role})
+              </h3>
+              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div>
+                <SearchableCombobox
+                  label="Proveedor / Comercio / Establecimiento"
+                  value={providerName}
+                  onChange={setProviderName}
+                  options={COMMON_EXPENSE_PROVIDERS}
+                  placeholder="Escribir o buscar..."
+                  allowCustom={true}
+                  required={true}
+                />
+              </div>
+
+              <div>
+                <SearchableCombobox
+                  label="Origen / Medio de Pago"
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  options={DEFAULT_PAYMENT_METHODS}
+                  placeholder="Medio de pago..."
+                  allowCustom={true}
+                  required={true}
+                  icon={<CreditCard className="w-3.5 h-3.5 text-emerald-400" />}
+                />
+              </div>
+
+              <div>
+                <SearchableCombobox
+                  label="Categoría / Rubro"
+                  value={category}
+                  onChange={setCategory}
+                  options={allCategories}
+                  placeholder="Categoría..."
+                  allowCustom={true}
+                  required={true}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1 font-medium">Monto Pagado ($)</label>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={ev => setAmount(ev.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold text-emerald-400"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1 font-medium">Fecha de Pago</label>
+                  <input
+                    type="date"
+                    value={paymentDate}
+                    onChange={ev => setPaymentDate(ev.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-semibold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>La modificación quedará registrada con la marca de auditoría de usuario <strong>{role}</strong>.</span>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg transition-all"
+                >
+                  Guardar Cambios ({role})
                 </button>
               </div>
             </form>

@@ -81,7 +81,6 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsOpen(true);
-    e.target.select();
   };
 
   const handleSelectOption = (opt: string) => {
@@ -97,6 +96,8 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
     setIsOpen(true);
   };
 
+  const displayFilter = filterText !== '' ? filterText : value;
+
   return (
     <div className={`relative ${className}`} ref={containerRef}>
       {label && <label className="text-xs text-slate-400 block mb-1 font-medium">{label}</label>}
@@ -108,12 +109,12 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
         
         <input
           type="text"
-          value={isOpen && filterText !== '' ? filterText : value}
+          value={value}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           placeholder={placeholder}
           required={required}
-          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-14 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium cursor-pointer"
+          className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-14 py-2.5 text-xs text-white focus:border-amber-500 outline-none font-medium cursor-text"
         />
 
         <div className="absolute right-2.5 top-2.5 flex items-center gap-1 text-slate-500">
@@ -146,14 +147,14 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
 
       {isOpen && (
         <div className="absolute left-0 right-0 top-full mt-1.5 bg-slate-950 border border-slate-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto divide-y divide-slate-800/60 custom-scrollbar">
-          {allowCustom && filterText.trim() !== '' && !isExactMatch && (
+          {allowCustom && value.trim() !== '' && !options.some(opt => opt.toLowerCase().trim() === value.toLowerCase().trim()) && (
             <button
               type="button"
-              onClick={() => handleSelectOption(filterText.trim())}
+              onClick={() => handleSelectOption(value.trim())}
               className="w-full text-left p-2.5 text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 transition-colors flex items-center gap-2 font-bold"
             >
               <Plus className="w-3.5 h-3.5 text-amber-400" />
-              <span>Usar categoría nueva: <strong>"{filterText.trim()}"</strong></span>
+              <span>Usar nombre manual: <strong>"{value.trim()}"</strong></span>
             </button>
           )}
 

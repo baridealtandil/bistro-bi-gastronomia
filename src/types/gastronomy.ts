@@ -11,6 +11,8 @@ export interface Sale {
   commissionAmount: number;
   netAmount: number;
   notes?: string;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
 }
 
 export interface Supplier {
@@ -36,6 +38,8 @@ export interface PurchaseInvoice {
   status: 'PENDIENTE' | 'PARCIAL' | 'PAGADO' | 'VENCIDO';
   items: { description: string; qty: number; unitPrice: number; prevUnitPrice?: number }[];
   fileUrl?: string;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
 }
 
 export interface SupplierPayment {
@@ -51,18 +55,22 @@ export interface SupplierPayment {
   bank?: string;
   dueDate?: string;
   notes?: string;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
 }
 
 export interface Expense {
   id: string;
   date: string;
   category: string;
-  type: string;
+  type?: string;
   description: string;
   amount: number;
   paymentMethod?: string;
   dueDate?: string;
   status: 'PENDIENTE' | 'PAGADO';
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
 }
 
 export interface Check {
@@ -76,6 +84,8 @@ export interface Check {
   amount: number;
   status: 'PENDIENTE' | 'COBRADO' | 'DEPOSITADO' | 'ENDOSADO' | 'ANULADO';
   notes?: string;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
 }
 
 export interface Employee {

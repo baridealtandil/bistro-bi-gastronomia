@@ -31,7 +31,6 @@ function MainAppContent() {
           {activeTab === 'gastos' && <ExpensesView />}
           {activeTab === 'cheques' && <ChecksView />}
           {activeTab === 'empleados' && <EmployeesView />}
-          {activeTab === 'platos' && <DishesView />}
           {activeTab === 'ia' && <AiChatView />}
           {activeTab === 'make' && <MakeIntegrationView />}
         </main>

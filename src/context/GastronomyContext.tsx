@@ -20,16 +20,20 @@ interface GastronomyContextType {
   setRole: (role: UserRole) => void;
   sales: Sale[];
   addSale: (sale: Omit<Sale, 'id' | 'netAmount'>) => void;
+  editSale: (id: string, saleData: Partial<Sale>) => void;
   suppliers: Supplier[];
   addSupplier: (supplier: Omit<Supplier, 'id' | 'balanceDue'>) => void;
   purchases: PurchaseInvoice[];
   addPurchase: (purchase: Omit<PurchaseInvoice, 'id'>) => void;
+  editPurchase: (id: string, purchaseData: Partial<PurchaseInvoice>) => void;
   supplierPayments: SupplierPayment[];
   addSupplierPayment: (payment: Omit<SupplierPayment, 'id'>) => void;
   expenses: Expense[];
   addExpense: (expense: Omit<Expense, 'id'>) => void;
+  editExpense: (id: string, expenseData: Partial<Expense>) => void;
   checks: Check[];
   addCheck: (check: Omit<Check, 'id'>) => void;
+  editCheck: (id: string, checkData: Partial<Check>) => void;
   employees: Employee[];
   addEmployee: (employee: Omit<Employee, 'id'>) => void;
   advances: Advance[];
@@ -241,6 +245,28 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   };
 
+  const editSale = (id: string, saleData: Partial<Sale>) => {
+    setSales(prev => {
+      const updated = prev.map(s => {
+        if (s.id === id) {
+          const grossAmount = saleData.grossAmount ?? s.grossAmount;
+          const commissionAmount = saleData.commissionAmount ?? s.commissionAmount;
+          const netAmount = grossAmount - commissionAmount;
+          return {
+            ...s,
+            ...saleData,
+            netAmount,
+            lastModifiedBy: role,
+            lastModifiedAt: new Date().toISOString()
+          };
+        }
+        return s;
+      });
+      try { localStorage.setItem('gastro_sales', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
   const addSupplier = (supplierData: Omit<Supplier, 'id' | 'balanceDue'>) => {
     const newSup: Supplier = { ...supplierData, id: `sup_${Date.now()}`, balanceDue: 0 };
     setSuppliers(prev => {
@@ -262,6 +288,24 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setSuppliers(prev => {
       const updated = prev.map(s => s.id === purchaseData.supplierId ? { ...s, balanceDue: s.balanceDue + purchaseData.amount } : s);
       try { localStorage.setItem('gastro_suppliers', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const editPurchase = (id: string, purchaseData: Partial<PurchaseInvoice>) => {
+    setPurchases(prev => {
+      const updated = prev.map(p => {
+        if (p.id === id) {
+          return {
+            ...p,
+            ...purchaseData,
+            lastModifiedBy: role,
+            lastModifiedAt: new Date().toISOString()
+          };
+        }
+        return p;
+      });
+      try { localStorage.setItem('gastro_purchases', JSON.stringify(updated)); } catch (err) {}
       return updated;
     });
   };
@@ -338,6 +382,24 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   };
 
+  const editExpense = (id: string, expenseData: Partial<Expense>) => {
+    setExpenses(prev => {
+      const updated = prev.map(e => {
+        if (e.id === id) {
+          return {
+            ...e,
+            ...expenseData,
+            lastModifiedBy: role,
+            lastModifiedAt: new Date().toISOString()
+          };
+        }
+        return e;
+      });
+      try { localStorage.setItem('gastro_expenses', JSON.stringify(updated)); } catch (err) {}
+      return updated;
+    });
+  };
+
   const addCheck = (checkData: Omit<Check, 'id'>) => {
     const newChk: Check = { ...checkData, id: `c_${Date.now()}` };
     setChecks(prev => {
@@ -408,6 +470,24 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return updated;
       });
     }
+  };
+
+  const editCheck = (id: string, checkData: Partial<Check>) => {
+    setChecks(prev => {
+      const updated = prev.map(c => {
+        if (c.id === id) {
+          return {
+            ...c,
+            ...checkData,
+            lastModifiedBy: role,
+            lastModifiedAt: new Date().toISOString()
+          };
+        }
+        return c;
+      });
+      try { localStorage.setItem('gastro_checks', JSON.stringify(updated)); } catch (err) {}
+      return updated;
+    });
   };
 
   const addEmployee = (employeeData: Omit<Employee, 'id'>) => {
@@ -520,16 +600,20 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setRole,
         sales,
         addSale,
+        editSale,
         suppliers,
         addSupplier,
         purchases,
         addPurchase,
+        editPurchase,
         supplierPayments,
         addSupplierPayment,
         expenses,
         addExpense,
+        editExpense,
         checks,
         addCheck,
+        editCheck,
         employees,
         addEmployee,
         advances,

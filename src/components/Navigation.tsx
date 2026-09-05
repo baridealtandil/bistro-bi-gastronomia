@@ -40,7 +40,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
     { id: 'gastos', label: 'Pagos', icon: Receipt, adminOnly: false },
     { id: 'cheques', label: 'Cheques', icon: CheckSquare, adminOnly: false },
     { id: 'empleados', label: 'Empleados', icon: Users, adminOnly: true },
-    { id: 'platos', label: 'Escandallos', icon: UtensilsCrossed, adminOnly: true },
     { id: 'ia', label: 'Asistente IA', icon: Sparkles, adminOnly: false },
     { id: 'make', label: 'Integración Make', icon: Webhook, adminOnly: true },
   ];

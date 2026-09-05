@@ -2,13 +2,15 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Plus, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw, Wallet, CreditCard, Landmark, ArrowDownCircle } from 'lucide-react';
+import { Plus, Sun, Moon, Users, DollarSign, Calendar, Filter, RefreshCw, Wallet, CreditCard, Landmark, ArrowDownCircle, Edit2, ShieldCheck } from 'lucide-react';
 import { Sale } from '../types/gastronomy';
 import { DateRangePicker } from './DateRangePicker';
 
 export const SalesView: React.FC = () => {
-  const { sales, addSale, expenses } = useGastronomy();
+  const { sales, addSale, editSale, expenses, role } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
 
   // Filtros de Ventas: Rango de Fechas (Calendario Unificado), Turno, Canal y Método de Pago
   const [startDate, setStartDate] = useState<string>('2026-09-01');
@@ -17,7 +19,7 @@ export const SalesView: React.FC = () => {
   const [filterChannel, setFilterChannel] = useState<string>('TODOS');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState<string>('TODOS');
 
-  // Form State para Nueva Venta
+  // Form State para Nueva Venta / Edición
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [shift, setShift] = useState<Sale['shift']>('MEDIODIA');
   const [covers, setCovers] = useState<string>('25');
@@ -26,6 +28,38 @@ export const SalesView: React.FC = () => {
   const [grossAmount, setGrossAmount] = useState<string>('');
   const [commissionAmount, setCommissionAmount] = useState<string>('0');
   const [notes, setNotes] = useState<string>('');
+
+  const handleStartEdit = (s: Sale) => {
+    setEditingSale(s);
+    setDate(s.date);
+    setShift(s.shift);
+    setCovers(s.covers.toString());
+    setChannel(s.channel);
+    setPaymentMethod(s.paymentMethod);
+    setGrossAmount(s.grossAmount.toString());
+    setCommissionAmount((s.commissionAmount || 0).toString());
+    setNotes(s.notes || '');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSale || !grossAmount || parseFloat(grossAmount) <= 0) return;
+
+    editSale(editingSale.id, {
+      date,
+      shift,
+      covers: parseInt(covers || '0', 10),
+      channel,
+      paymentMethod,
+      grossAmount: parseFloat(grossAmount),
+      commissionAmount: parseFloat(commissionAmount || '0'),
+      notes
+    });
+
+    setEditingSale(null);
+    setShowEditModal(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -306,7 +340,8 @@ export const SalesView: React.FC = () => {
                 <th className="p-3">Medio Pago</th>
                 <th className="p-3">Monto Neto</th>
                 <th className="p-3">Promedio / Cubierto</th>
-                <th className="p-3">Notas</th>
+                <th className="p-3">Notas & Auditoría</th>
+                <th className="p-3 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -338,13 +373,31 @@ export const SalesView: React.FC = () => {
                       <td className="p-3 text-slate-300 font-medium">
                         {ticketPerCover > 0 ? `$${Math.round(ticketPerCover).toLocaleString('es-AR')}` : '-'}
                       </td>
-                      <td className="p-3 text-slate-500 max-w-xs truncate">{s.notes || '-'}</td>
+                      <td className="p-3">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-slate-400 max-w-xs truncate">{s.notes || '-'}</span>
+                          {s.lastModifiedBy && (
+                            <span className="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-semibold" title={`Editado el ${s.lastModifiedAt ? new Date(s.lastModifiedAt).toLocaleString() : ''}`}>
+                              <ShieldCheck className="w-2.5 h-2.5 text-amber-400" /> Editado por {s.lastModifiedBy}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => handleStartEdit(s)}
+                          className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
+                          title="Modificar venta registrada"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={8} className="p-6 text-center text-slate-500 italic text-xs">
+                  <td colSpan={9} className="p-6 text-center text-slate-500 italic text-xs">
                     No hay cierres de ventas registrados en el rango de fechas seleccionado.
                   </td>
                 </tr>
@@ -479,6 +532,141 @@ export const SalesView: React.FC = () => {
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
                 >
                   Guardar Venta
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Modificar Venta Registrada */}
+      {showEditModal && editingSale && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-amber-400 flex items-center gap-2">
+                <Edit2 className="w-4 h-4" /> Modificar Venta Registrada ({role})
+              </h3>
+              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Fecha</label>
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={e => setDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Turno</label>
+                  <select
+                    value={shift}
+                    onChange={e => setShift(e.target.value as Sale['shift'])}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  >
+                    <option value="MEDIODIA">Mediodía</option>
+                    <option value="NOCHE">Noche</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Cubiertos (Comensales)</label>
+                  <input
+                    type="number"
+                    value={covers}
+                    onChange={e => setCovers(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Canal de Venta</label>
+                  <select
+                    value={channel}
+                    onChange={e => setChannel(e.target.value as Sale['channel'])}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  >
+                    <option value="SALON">Salón</option>
+                    <option value="DELIVERY_PROPIO">Delivery Propio</option>
+                    <option value="TAKEAWAY">Take Away</option>
+                    <option value="RAPPI">Rappi</option>
+                    <option value="PEDIDOS_YA">PedidosYa</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Método de Pago</label>
+                  <select
+                    value={paymentMethod}
+                    onChange={e => setPaymentMethod(e.target.value as Sale['paymentMethod'])}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  >
+                    <option value="EFECTIVO">Efectivo</option>
+                    <option value="MERCADO_PAGO">Mercado Pago</option>
+                    <option value="DEBITO">Débito</option>
+                    <option value="CREDITO">Crédito</option>
+                    <option value="TRANSFERENCIA">Transferencia</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Monto Bruto ($)</label>
+                  <input
+                    type="number"
+                    value={grossAmount}
+                    onChange={e => setGrossAmount(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Comisión Plataforma ($)</label>
+                <input
+                  type="number"
+                  value={commissionAmount}
+                  onChange={e => setCommissionAmount(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Notas u Observaciones</label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                />
+              </div>
+
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>La modificación se registrará bajo el usuario <strong>{role}</strong>.</span>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
+                >
+                  Guardar Cambios ({role})
                 </button>
               </div>
             </form>
