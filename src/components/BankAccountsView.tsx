@@ -27,12 +27,21 @@ export const BankAccountsView: React.FC = () => {
     editBankMovement,
     deleteBankMovement,
     initialBalances,
+    addInitialBalance,
+    editInitialBalance,
     role
   } = useGastronomy();
 
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
   const [editingBm, setEditingBm] = useState<BankMovement | null>(null);
+
+  // Form State para Saldo Inicial Modal
+  const [ibAccountType, setIbAccountType] = useState<'CAJA' | 'MERCADO_PAGO' | 'BANCO'>('BANCO');
+  const [ibBankName, setIbBankName] = useState('Banco Galicia');
+  const [ibAmount, setIbAmount] = useState('');
+  const [ibNotes, setIbNotes] = useState('');
 
   // Filtros Avanzados
   const [selectedBank, setSelectedBank] = useState<string>('ALL');
@@ -62,6 +71,35 @@ export const BankAccountsView: React.FC = () => {
       ...bankMovements.map(bm => bm.bankName)
     ])
   );
+
+  const handleSaveInitialBalance = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ibAmount) return;
+
+    // Buscar si ya existe saldo inicial para este banco/tipo
+    const existing = initialBalances.find(ib => 
+      ib.accountType === ibAccountType && (ibAccountType !== 'BANCO' || ib.bankName === ibBankName)
+    );
+
+    if (existing) {
+      editInitialBalance(existing.id, {
+        amount: parseFloat(ibAmount),
+        notes: ibNotes || existing.notes
+      });
+    } else {
+      addInitialBalance({
+        accountType: ibAccountType,
+        bankName: ibAccountType === 'BANCO' ? ibBankName : undefined,
+        date: new Date().toISOString().split('T')[0],
+        amount: parseFloat(ibAmount),
+        notes: ibNotes
+      });
+    }
+
+    setIbAmount('');
+    setIbNotes('');
+    setShowInitialBalanceModal(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,38 +207,43 @@ export const BankAccountsView: React.FC = () => {
             Registro y control de depósitos, comisiones, transferencias y movimientos bancarios con saldo dinámico.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setBankName('Banco Galicia');
-            setDate(new Date().toISOString().split('T')[0]);
-            setType('INGRESO');
-            setConcept('');
-            setAmount('');
-            setReferenceNumber('');
-            setNotes('');
-            setShowModal(true);
-          }}
-          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          + Registrar Movimiento Bancario
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setIbAccountType('BANCO');
+              setIbBankName('Banco Galicia');
+              setIbAmount('');
+              setIbNotes('');
+              setShowInitialBalanceModal(true);
+            }}
+            className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all"
+          >
+            ⚙️ Configurar Saldo Inicial
+          </button>
+          <button
+            onClick={() => {
+              setBankName('Banco Galicia');
+              setDate(new Date().toISOString().split('T')[0]);
+              setType('INGRESO');
+              setConcept('');
+              setAmount('');
+              setReferenceNumber('');
+              setNotes('');
+              setShowModal(true);
+            }}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            + Registrar Movimiento
+          </button>
+        </div>
       </div>
 
-      {/* TARJETAS RESUMEN FINANCIERO BANCARIO */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* TARJETAS RESUMEN DE SALDOS REALES */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-400 font-semibold">Saldo Inicial Bancos</span>
-            <Building className="w-4 h-4 text-slate-400" />
-          </div>
-          <p className="text-xl font-black text-slate-200">${totalSummary.initialSum.toLocaleString('es-AR')}</p>
-          <span className="text-[10px] text-slate-500">Saldo configurado de apertura</span>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-400 font-semibold font-bold">Total Ingresos / Depósitos</span>
+            <span className="text-xs text-slate-400 font-bold">Total Ingresos / Depósitos</span>
             <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
           </div>
           <p className="text-xl font-black text-emerald-400">+${totalSummary.totalIngresos.toLocaleString('es-AR')}</p>
@@ -213,17 +256,30 @@ export const BankAccountsView: React.FC = () => {
             <ArrowUpRight className="w-4 h-4 text-rose-400" />
           </div>
           <p className="text-xl font-black text-rose-400">-${totalSummary.totalEgresos.toLocaleString('es-AR')}</p>
-          <span className="text-[10px] text-rose-400/70">Pagos, comisiones y cheques cobrados</span>
+          <span className="text-[10px] text-rose-400/70">Pagos, comisiones y débitos</span>
         </div>
 
         <div className="bg-slate-900 border border-indigo-500/30 bg-indigo-500/5 p-4 rounded-2xl shadow-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-indigo-300 font-semibold">Saldo Disponible Actual</span>
+            <span className="text-xs text-indigo-300 font-bold">Saldo Real Disponible en Banco</span>
             <DollarSign className="w-4 h-4 text-indigo-400" />
           </div>
-          <p className="text-xl font-black text-indigo-400">${totalSummary.currentBalance.toLocaleString('es-AR')}</p>
-          <span className="text-[10px] text-indigo-300/70">Saldo líquido real en cuenta bancaria</span>
+          <p className="text-2xl font-black text-indigo-400">${totalSummary.currentBalance.toLocaleString('es-AR')}</p>
+          <span className="text-[10px] text-indigo-300/70">Saldo bancario líquido actual</span>
         </div>
+      </div>
+
+      {/* DESGLOSE DE SALDOS REALES POR BANCO */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        {allBankNames.map(bn => {
+          const bSummary = getBankSummary(bn);
+          return (
+            <div key={bn} className="bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 whitespace-nowrap shadow-md">
+              <span className="text-slate-400 font-semibold">{bn}:</span>
+              <span className="font-black text-white">${bSummary.currentBalance.toLocaleString('es-AR')}</span>
+            </div>
+          );
+        })}
       </div>
 
       {/* FILTROS CON ALMANAQUE Y BÚSQUEDA DE CONCEPTOS */}
@@ -604,6 +660,88 @@ export const BankAccountsView: React.FC = () => {
                   className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
                 >
                   Guardar Cambios ({role})
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIGURAR SALDO INICIAL */}
+      {showInitialBalanceModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-amber-400 flex items-center gap-2">
+                ⚙️ Configurar Saldo de Apertura / Inicial
+              </h3>
+              <button onClick={() => setShowInitialBalanceModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
+            </div>
+
+            <form onSubmit={handleSaveInitialBalance} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Tipo de Cuenta / Origen</label>
+                <select
+                  value={ibAccountType}
+                  onChange={e => setIbAccountType(e.target.value as any)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
+                >
+                  <option value="BANCO">🏦 Cuenta Bancaria</option>
+                  <option value="CAJA">💵 Efectivo / Caja Chica / Mayor</option>
+                  <option value="MERCADO_PAGO">💳 MercadoPago</option>
+                </select>
+              </div>
+
+              {ibAccountType === 'BANCO' && (
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Nombre del Banco</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Banco Galicia, Banco Nación"
+                    value={ibBankName}
+                    onChange={e => setIbBankName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
+                    required
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Saldo de Apertura ($)</label>
+                <input
+                  type="number"
+                  placeholder="Ej. 1450000"
+                  value={ibAmount}
+                  onChange={e => setIbAmount(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-400"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Observaciones</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Saldo de inicio de gestión"
+                  value={ibNotes}
+                  onChange={e => setIbNotes(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowInitialBalanceModal(false)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
+                >
+                  Guardar Saldo Inicial
                 </button>
               </div>
             </form>
