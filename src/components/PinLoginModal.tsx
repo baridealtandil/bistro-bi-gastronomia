@@ -43,7 +43,7 @@ export const PinLoginModal: React.FC = () => {
     <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 md:p-8 space-y-6 shadow-2xl text-center">
         {/* Logo & Header */}
-        <div className="flex flex-col items-center space-y-3">
+        <div className="flex flex-col items-center space-y-2">
           <Image
             src="/cantina-pink-logo.png"
             alt="Cantina Pink"
@@ -52,14 +52,10 @@ export const PinLoginModal: React.FC = () => {
             className="h-20 w-auto rounded-xl shadow-lg shrink-0"
             priority
           />
-          <div>
-            <h2 className="text-xl font-bold text-white tracking-tight flex items-center justify-center gap-2">
-              <Lock className="w-5 h-5 text-amber-400" /> Bistró BI
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Ingrese la clave numérica para acceder al sistema
-            </p>
-          </div>
+          <p className="text-xs text-slate-400 mt-1 flex items-center justify-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>Ingrese la clave numérica para acceder al sistema</span>
+          </p>
         </div>
 
         {/* Display PIN Input */}
