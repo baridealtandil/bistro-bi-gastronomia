@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Shield, User, Bell, Sparkles, AlertTriangle, Clock, DollarSign, CheckCircle2, X } from 'lucide-react';
+import { Shield, User, Bell, Sparkles, AlertTriangle, Clock, DollarSign, CheckCircle2, X, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   onOpenAiChat: () => void;
@@ -24,6 +24,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const handleLogout = () => {
+    document.cookie = 'login_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    window.location.href = '/?logout=true';
+  };
 
   // Close notifications on outside click
   useEffect(() => {
@@ -224,6 +229,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
             </button>
           </div>
           )}
+
+          {/* Botón de Cerrar Sesión */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 px-3 py-2 rounded-xl font-bold transition-all active:scale-95 shadow-sm"
+            title="Cerrar sesión e inhabilitar credenciales guardadas en este navegador"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Cerrar Sesión</span>
+          </button>
         </div>
       </div>
     </header>
