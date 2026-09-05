@@ -38,6 +38,7 @@ interface GastronomyContextType {
   addCheck: (check: Omit<Check, 'id'>) => void;
   editCheck: (id: string, checkData: Partial<Check>) => void;
   markCheckAsCovered: (id: string, customBankName?: string) => void;
+  toggleCheckCovered: (id: string, customBankName?: string) => void;
   employees: Employee[];
   addEmployee: (employee: Omit<Employee, 'id'>) => void;
   advances: Advance[];
@@ -595,36 +596,55 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
-  const markCheckAsCovered = (checkId: string, customBankName?: string) => {
+  const toggleCheckCovered = (checkId: string, customBankName?: string) => {
     const targetCheck = checks.find(c => c.id === checkId);
     if (!targetCheck) return;
 
-    const bankToDebit = customBankName || targetCheck.bank || 'Banco Galicia';
+    const bankToUse = customBankName || targetCheck.bank || 'Banco Galicia';
+    const isCurrentlyCovered = targetCheck.status === 'CUBIERTO' || targetCheck.status === 'PAGADO';
 
-    // 1. Cambiar estado del cheque a CUBIERTO
-    setChecks(prev => {
-      const updated = prev.map(c => c.id === checkId ? { ...c, status: 'CUBIERTO' as const, lastModifiedBy: role, lastModifiedAt: new Date().toISOString() } : c);
-      try { localStorage.setItem('gastro_checks', JSON.stringify(updated)); } catch (e) {}
-      return updated;
-    });
+    if (isCurrentlyCovered) {
+      // DESMARCAR: Cambiar estado a PENDIENTE y eliminar el egreso de banco (reponiendo el saldo)
+      setChecks(prev => {
+        const updated = prev.map(c => c.id === checkId ? { ...c, status: 'PENDIENTE' as const, lastModifiedBy: role, lastModifiedAt: new Date().toISOString() } : c);
+        try { localStorage.setItem('gastro_checks', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
 
-    // 2. Registrar egreso en Bancos
-    const newBm: BankMovement = {
-      id: `bm_${Date.now()}`,
-      bankName: bankToDebit,
-      date: new Date().toISOString().split('T')[0],
-      type: 'EGRESO',
-      concept: `Débito por Cobertura de Cheque N° ${targetCheck.number} (${targetCheck.issuerOrRecipient})`,
-      amount: targetCheck.amount,
-      referenceNumber: targetCheck.number,
-      notes: `Cheque marcado como cubierto/pagado en banco ${bankToDebit}`
-    };
+      setBankMovements(prev => {
+        const updated = prev.filter(bm => !(bm.referenceNumber === targetCheck.number && bm.type === 'EGRESO'));
+        try { localStorage.setItem('gastro_bank_movements', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
+    } else {
+      // MARCAR: Cambiar estado a CUBIERTO y registrar egreso en el banco (descontando del saldo)
+      setChecks(prev => {
+        const updated = prev.map(c => c.id === checkId ? { ...c, status: 'CUBIERTO' as const, lastModifiedBy: role, lastModifiedAt: new Date().toISOString() } : c);
+        try { localStorage.setItem('gastro_checks', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
 
-    setBankMovements(prev => {
-      const updated = [newBm, ...prev];
-      try { localStorage.setItem('gastro_bank_movements', JSON.stringify(updated)); } catch (e) {}
-      return updated;
-    });
+      const newBm: BankMovement = {
+        id: `bm_${Date.now()}`,
+        bankName: bankToUse,
+        date: new Date().toISOString().split('T')[0],
+        type: 'EGRESO',
+        concept: `Débito por Cobertura de Cheque N° ${targetCheck.number} (${targetCheck.issuerOrRecipient})`,
+        amount: targetCheck.amount,
+        referenceNumber: targetCheck.number,
+        notes: `Cheque marcado como cubierto en banco ${bankToUse}`
+      };
+
+      setBankMovements(prev => {
+        const updated = [newBm, ...prev];
+        try { localStorage.setItem('gastro_bank_movements', JSON.stringify(updated)); } catch (e) {}
+        return updated;
+      });
+    }
+  };
+
+  const markCheckAsCovered = (checkId: string, customBankName?: string) => {
+    toggleCheckCovered(checkId, customBankName);
   };
 
   const addEmployee = (employeeData: Omit<Employee, 'id'>) => {
@@ -851,6 +871,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         addCheck,
         editCheck,
         markCheckAsCovered,
+        toggleCheckCovered,
         employees,
         addEmployee,
         advances,

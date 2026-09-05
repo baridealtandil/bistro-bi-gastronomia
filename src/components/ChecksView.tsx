@@ -15,12 +15,14 @@ import {
   DollarSign,
   UserCheck,
   Edit2,
-  ShieldCheck
+  ShieldCheck,
+  CheckCircle2,
+  Circle
 } from 'lucide-react';
 import { Check as CheckType } from '../types/gastronomy';
 
 export const ChecksView: React.FC = () => {
-  const { checks, addCheck, editCheck, markCheckAsCovered, suppliers, role } = useGastronomy();
+  const { checks, addCheck, editCheck, toggleCheckCovered, suppliers, role } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCheck, setEditingCheck] = useState<CheckType | null>(null);
@@ -328,15 +330,34 @@ export const ChecksView: React.FC = () => {
                     <td className="p-3 font-bold text-amber-400 whitespace-nowrap">{c.dueDate}</td>
                     <td className="p-3 text-white font-black text-sm">${c.amount.toLocaleString('es-AR')}</td>
                     <td className="p-3 whitespace-nowrap">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                        c.status === 'PENDIENTE'
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                          : c.status === 'ENDOSADO'
-                          ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                      }`}>
-                        {c.status}
-                      </span>
+                      <button
+                        onClick={() => toggleCheckCovered(c.id)}
+                        className={`px-3 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all shadow ${
+                          c.status === 'CUBIERTO' || c.status === 'PAGADO'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-rose-500/20 hover:text-rose-300 hover:border-rose-500/40'
+                            : c.status === 'ENDOSADO'
+                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/40'
+                            : 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-500/40'
+                        }`}
+                        title={c.status === 'CUBIERTO' || c.status === 'PAGADO' ? "Haz clic para DESMARCAR (restituye el saldo al banco)" : "Haz clic para MARCAR COMO CUBIERTO (descuenta el saldo del banco)"}
+                      >
+                        {c.status === 'CUBIERTO' || c.status === 'PAGADO' ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>✓ Cubierto</span>
+                          </>
+                        ) : c.status === 'ENDOSADO' ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
+                            <span>Endosado</span>
+                          </>
+                        ) : (
+                          <>
+                            <Circle className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Por Cubrir</span>
+                          </>
+                        )}
+                      </button>
                     </td>
                     <td className="p-3 text-slate-400 max-w-xs">
                       <div>{c.notes || '-'}</div>
@@ -348,18 +369,6 @@ export const ChecksView: React.FC = () => {
                     </td>
                     <td className="p-3 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
-                        {c.status !== 'CUBIERTO' && c.status !== 'PAGADO' && (
-                          <button
-                            onClick={() => {
-                              markCheckAsCovered(c.id, c.bank);
-                              alert(`🏦 Cheque N° ${c.number} marcado como CUBIERTO. Se registró el débito de $${c.amount.toLocaleString('es-AR')} en ${c.bank}.`);
-                            }}
-                            className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 px-2 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1"
-                            title="Cubrir / Debitar cheque en el Banco emisor"
-                          >
-                            🏦 Cubrir en Banco
-                          </button>
-                        )}
                         <button
                           onClick={() => handleStartEdit(c)}
                           className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
