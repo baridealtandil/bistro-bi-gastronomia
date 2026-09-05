@@ -115,132 +115,15 @@ interface GastronomyContextType {
   totalSupplierDebt: number;
 }
 
-const INITIAL_SALES: Sale[] = [
-  { id: 's1', date: '2026-09-01', shift: 'MEDIODIA', covers: 35, channel: 'SALON', paymentMethod: 'EFECTIVO', grossAmount: 450000, commissionAmount: 0, netAmount: 450000 },
-  { id: 's2', date: '2026-09-01', shift: 'NOCHE', covers: 42, channel: 'SALON', paymentMethod: 'MERCADO_PAGO', grossAmount: 380000, commissionAmount: 7600, netAmount: 372400 },
-  { id: 's3', date: '2026-09-01', shift: 'NOCHE', covers: 15, channel: 'RAPPI', paymentMethod: 'CREDITO', grossAmount: 180000, commissionAmount: 36000, netAmount: 144000 },
-  { id: 's4', date: '2026-09-02', shift: 'MEDIODIA', covers: 48, channel: 'SALON', paymentMethod: 'DEBITO', grossAmount: 520000, commissionAmount: 7800, netAmount: 512200 },
-  { id: 's5', date: '2026-09-02', shift: 'NOCHE', covers: 22, channel: 'PEDIDOS_YA', paymentMethod: 'MERCADO_PAGO', grossAmount: 210000, commissionAmount: 42000, netAmount: 168000 },
-  { id: 's6', date: '2026-09-03', shift: 'NOCHE', covers: 55, channel: 'SALON', paymentMethod: 'EFECTIVO', grossAmount: 610000, commissionAmount: 0, netAmount: 610000 },
-  { id: 's7', date: '2026-09-03', shift: 'MEDIODIA', covers: 18, channel: 'TAKEAWAY', paymentMethod: 'TRANSFERENCIA', grossAmount: 140000, commissionAmount: 0, netAmount: 140000 },
-  { id: 's8', date: '2026-09-04', shift: 'NOCHE', covers: 40, channel: 'SALON', paymentMethod: 'MERCADO_PAGO', grossAmount: 490000, commissionAmount: 9800, netAmount: 480200 },
-];
-
-const INITIAL_SUPPLIERS: Supplier[] = [
-  { id: 'sup1', name: 'Distribuidora Carnes del Sur', cuit: '30-71234567-8', category: 'Carnes, Achuras & Pollo', phone: '11-4567-8901', email: 'ventas@carnesdelsur.com', paymentTermDays: 15, initialBalanceDue: 7857575, balanceDue: 8277575 },
-  { id: 'sup2', name: 'Verdulería Central BAZ', cuit: '20-31987654-3', category: 'Verdulería, Frutas & Hortalizas', phone: '11-5678-1234', email: 'pedidos@verduleriabaz.com', paymentTermDays: 7, initialBalanceDue: 0, balanceDue: 85000 },
-  { id: 'sup3', name: 'Bebidas & Licores Express', cuit: '30-68912345-1', category: 'Bebidas, Vinos, Licores & Cervezas', phone: '11-3456-7890', email: 'proveedores@licoresexpress.com', paymentTermDays: 30, initialBalanceDue: 0, balanceDue: 0 },
-  { id: 'sup4', name: 'BeerTan Cervezas Artesanales', cuit: '30-79812345-6', category: 'Bebidas, Vinos, Licores & Cervezas', phone: '11-9876-5432', email: 'contacto@beertan.com', paymentTermDays: 15, initialBalanceDue: 0, balanceDue: 0 },
-  { id: 'sup5', name: 'Panificadora El Sol', cuit: '30-65432198-7', category: 'Panadería, Pastelería & Bollería', phone: '11-4321-8765', email: 'ventas@panificadoraelsol.com', paymentTermDays: 15, initialBalanceDue: 0, balanceDue: 0 },
-  { id: 'sup6', name: 'Lácteos & Quesos San Martín', cuit: '30-74561238-9', category: 'Lácteos, Quesos & Cremas', phone: '11-8765-4321', email: 'pedidos@lacteossanmartin.com', paymentTermDays: 15, initialBalanceDue: 0, balanceDue: 0 },
-  { id: 'sup7', name: 'Angelani', cuit: '30-71984210-5', category: 'Carnes, Achuras & Pollo', phone: '11-4455-6677', email: 'ventas@angelani.com.ar', paymentTermDays: 15, initialBalanceDue: 1250000, balanceDue: 1350000 },
-];
-
-const INITIAL_PURCHASES: PurchaseInvoice[] = [
-  {
-    id: 'p0', supplierId: 'sup1', supplierName: 'Distribuidora Carnes del Sur', invoiceNumber: 'FC-A-0001-0003980',
-    date: '2026-08-15', dueDate: '2026-08-30', amount: 7857575, paidAmount: 0, status: 'PENDIENTE',
-    items: [
-      { description: 'Factura Compra Insumos Frigorífico (Agosto)', qty: 1, unitPrice: 7857575 }
-    ]
-  },
-  {
-    id: 'p1', supplierId: 'sup1', supplierName: 'Distribuidora Carnes del Sur', invoiceNumber: 'FC-A-0001-0004512',
-    date: '2026-09-01', dueDate: '2026-09-16', amount: 420000, paidAmount: 0, status: 'PENDIENTE',
-    items: [
-      { description: 'Ojo de Bife (kg)', qty: 40, unitPrice: 8500, prevUnitPrice: 7900 },
-      { description: 'Lomo (kg)', qty: 10, unitPrice: 8000, prevUnitPrice: 8000 },
-    ]
-  },
-  {
-    id: 'p2', supplierId: 'sup2', supplierName: 'Verdulería Central BAZ', invoiceNumber: 'FC-B-0002-0001290',
-    date: '2026-09-02', dueDate: '2026-09-09', amount: 85000, paidAmount: 0, status: 'PENDIENTE',
-    items: [
-      { description: 'Papas (Bolsa 20kg)', qty: 5, unitPrice: 9000 },
-      { description: 'Verdura Hoja Mix', qty: 10, unitPrice: 4000 },
-    ]
-  },
-  {
-    id: 'p3', supplierId: 'sup3', supplierName: 'Bebidas & Licores Express', invoiceNumber: 'FC-A-0005-0008819',
-    date: '2026-08-25', dueDate: '2026-09-25', amount: 210000, paidAmount: 210000, status: 'PAGADO',
-    items: [
-      { description: 'Cerveza Artesanal 500ml (Caja)', qty: 10, unitPrice: 15000 },
-      { description: 'Gaseosas 1.5L (Caja)', qty: 4, unitPrice: 15000 },
-    ]
-  },
-  {
-    id: 'p4', supplierId: 'sup7', supplierName: 'Angelani', invoiceNumber: 'FC-A-0002-0007812',
-    date: '2026-09-02', dueDate: '2026-09-17', amount: 450000, paidAmount: 0, status: 'PENDIENTE',
-    items: [
-      { description: 'Media res novillo seleccionado (120kg)', qty: 1, unitPrice: 450000 }
-    ]
-  }
-];
-
-const INITIAL_SUPPLIER_PAYMENTS: SupplierPayment[] = [
-  {
-    id: 'pay1',
-    supplierId: 'sup3',
-    supplierName: 'Bebidas & Licores Express',
-    invoiceId: 'p3',
-    invoiceNumber: 'FC-A-0005-0008819',
-    date: '2026-08-28',
-    paymentMethod: 'TRANSFERENCIA',
-    amount: 210000,
-    notes: 'Pago total de factura de bebidas por transferencia bancaria'
-  },
-  {
-    id: 'pay2',
-    supplierId: 'sup7',
-    supplierName: 'Angelani',
-    invoiceId: 'p4',
-    invoiceNumber: 'FC-A-0002-0007812',
-    date: '2026-09-02',
-    paymentMethod: 'CHEQUE_PROPIO',
-    amount: 350000,
-    checkNumber: 'CHK-009855',
-    bank: 'Banco Galicia',
-    dueDate: '2026-09-20',
-    notes: 'Pago a cuenta de provisión de carne'
-  }
-];
-
-const INITIAL_EXPENSES: Expense[] = [
-  { id: 'e1', date: '2026-09-01', category: 'ALQUILER', type: 'FIJO', description: 'Alquiler Salón Comercial', amount: 850000, paymentMethod: 'TRANSFERENCIA BANCARIA', dueDate: '2026-09-01', status: 'PAGADO' },
-  { id: 'e2', date: '2026-09-02', category: 'LUZ', type: 'SERVICIO', description: 'Usina Popular de Electricidad', amount: 195000, paymentMethod: 'TRANSFERENCIA BANCARIA', dueDate: '2026-09-02', status: 'PAGADO' },
-  { id: 'e3', date: '2026-09-02', category: 'GAS', type: 'SERVICIO', description: 'Camuzzi Gas Pampeana', amount: 82000, paymentMethod: 'EFECTIVO (Caja Chica)', dueDate: '2026-09-02', status: 'PAGADO' },
-  { id: 'e4', date: '2026-09-03', category: 'SOFTWARE', type: 'FIJO', description: 'Abono Sistema POS / Fudo', amount: 35000, paymentMethod: 'TARJETA DE CRÉDITO', dueDate: '2026-09-03', status: 'PAGADO' },
-];
-
-const INITIAL_CHECKS: Check[] = [
-  { id: 'c1', type: 'PROPIO', number: 'CHK-009812', bank: 'Banco Galicia', issuerOrRecipient: 'Distribuidora Carnes del Sur', issueDate: '2026-09-01', dueDate: '2026-09-08', amount: 250000, status: 'PENDIENTE', notes: 'Pago a cuenta factura de carne' },
-  { id: 'c2', type: 'TERCERO', number: 'CHK-441029', bank: 'BBVA', issuerOrRecipient: 'Verdulería Central BAZ', issueDate: '2026-08-28', dueDate: '2026-09-22', amount: 180000, status: 'ENDOSADO', notes: 'Endosado como pago a proveedor de verduras' },
-  { id: 'c3', type: 'PROPIO', number: 'CHK-010452', bank: 'Santander', issuerOrRecipient: 'Distribuidora Carnes del Sur', issueDate: '2026-09-02', dueDate: '2026-10-15', amount: 420000, status: 'PENDIENTE', notes: 'Diferido compra lomo y ojo de bife' },
-  { id: 'c4', type: 'PROPIO', number: 'CHK-010453', bank: 'Banco Galicia', issuerOrRecipient: 'Bebidas & Licores Express', issueDate: '2026-09-03', dueDate: '2026-10-28', amount: 310000, status: 'PENDIENTE', notes: 'Diferido pedido cerveza artesanal' },
-  { id: 'c5', type: 'PROPIO', number: 'CHK-011890', bank: 'Macro', issuerOrRecipient: 'Distribuidora Carnes del Sur', issueDate: '2026-09-04', dueDate: '2026-11-10', amount: 580000, status: 'PENDIENTE', notes: 'Diferido reposición frigorífica' },
-  { id: 'c6', type: 'PROPIO', number: 'CHK-011891', bank: 'BBVA', issuerOrRecipient: 'Lácteos La Serenísima', issueDate: '2026-09-04', dueDate: '2026-11-25', amount: 290000, status: 'PENDIENTE', notes: 'Diferido provisión quesos y crema' },
-  { id: 'c7', type: 'PROPIO', number: 'CHK-012301', bank: 'Banco Galicia', issuerOrRecipient: 'Distribuidora Carnes del Sur', issueDate: '2026-09-04', dueDate: '2026-12-12', amount: 640000, status: 'PENDIENTE', notes: 'Diferido fiesta de fin de año' },
-];
-
-const INITIAL_EMPLOYEES: Employee[] = [
-  { id: 'emp1', name: 'Carlos Rodríguez', role: 'COCINA', baseSalary: 650000, paymentType: 'MENSUAL', active: true },
-  { id: 'emp2', name: 'Lucía Méndez', role: 'MOZO', baseSalary: 480000, paymentType: 'MENSUAL', active: true },
-  { id: 'emp3', name: 'Marcos Benítez', role: 'BARRA', baseSalary: 520000, paymentType: 'MENSUAL', active: true },
-  { id: 'emp4', name: 'Sofía Gomez', role: 'LIMPIEZA', baseSalary: 420000, paymentType: 'MENSUAL', active: true },
-];
-
-const INITIAL_ADVANCES: Advance[] = [
-  { id: 'adv1', employeeId: 'emp1', employeeName: 'Carlos Rodríguez', date: '2026-09-02', amount: 50000, notes: 'Adelanto de quincena' },
-  { id: 'adv2', employeeId: 'emp2', employeeName: 'Lucía Méndez', date: '2026-09-03', amount: 30000, notes: 'Adelanto emergente' },
-];
-
-const INITIAL_DISHES: Dish[] = [
-  { id: 'd1', name: 'Ojo de Bife con Papas Rústicas', category: 'PRINCIPAL', salesPrice: 14500, costPrice: 4800, salesVolumeMonth: 180, classification: 'ESTRELLA' },
-  { id: 'd2', name: 'Milanesa Napolitana para compartir', category: 'PRINCIPAL', salesPrice: 16000, costPrice: 5100, salesVolumeMonth: 210, classification: 'ESTRELLA' },
-  { id: 'd3', name: 'Hamburguesa Triple Gourmet', category: 'PRINCIPAL', salesPrice: 9800, costPrice: 3100, salesVolumeMonth: 140, classification: 'VACALUCHERA' },
-  { id: 'd4', name: 'Risotto de Hongos Silvestres', category: 'PRINCIPAL', salesPrice: 12000, costPrice: 5900, salesVolumeMonth: 35, classification: 'INCOGNITA' },
-  { id: 'd5', name: 'Ensalada César con Pollo', category: 'ENTRADA', salesPrice: 7500, costPrice: 3800, salesVolumeMonth: 25, classification: 'PERRO' },
-];
+const INITIAL_SALES: Sale[] = [];
+const INITIAL_SUPPLIERS: Supplier[] = [];
+const INITIAL_PURCHASES: PurchaseInvoice[] = [];
+const INITIAL_SUPPLIER_PAYMENTS: SupplierPayment[] = [];
+const INITIAL_EXPENSES: Expense[] = [];
+const INITIAL_CHECKS: Check[] = [];
+const INITIAL_EMPLOYEES: Employee[] = [];
+const INITIAL_ADVANCES: Advance[] = [];
+const INITIAL_DISHES: Dish[] = [];
 
 const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   {
@@ -251,12 +134,7 @@ const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   }
 ];
 
-const INITIAL_INITIAL_BALANCES: InitialBalance[] = [
-  { id: 'ib1', accountType: 'CAJA', date: '2026-09-01', amount: 350000, notes: 'Fondo de caja chica y cambio inicial' },
-  { id: 'ib2', accountType: 'MERCADO_PAGO', date: '2026-09-01', amount: 820000, notes: 'Saldo acumulado en cuenta de MercadoPago' },
-  { id: 'ib3', accountType: 'BANCO', bankName: 'Banco Galicia', date: '2026-09-01', amount: 1450000, notes: 'Saldo de apertura en cuenta corriente Galicia' },
-  { id: 'ib4', accountType: 'BANCO', bankName: 'Banco Nación', date: '2026-09-01', amount: 620000, notes: 'Saldo apertura Banco Nación' },
-];
+const INITIAL_INITIAL_BALANCES: InitialBalance[] = [];
 
 const INITIAL_PARTNERS: Partner[] = [
   { id: 'soc1', name: 'Franco', active: true },
@@ -271,12 +149,7 @@ const INITIAL_PARTNERS: Partner[] = [
 const INITIAL_PARTNER_CONSUMPTIONS: PartnerConsumption[] = [];
 const INITIAL_PARTNER_WITHDRAWALS: PartnerWithdrawal[] = [];
 
-const INITIAL_BANK_MOVEMENTS: BankMovement[] = [
-  { id: 'bm1', bankName: 'Banco Galicia', date: '2026-09-01', type: 'INGRESO', concept: 'Transferencia cliente evento especial', amount: 150000, referenceNumber: 'TR-99812', notes: 'Seña evento privado' },
-  { id: 'bm2', bankName: 'Banco Galicia', date: '2026-09-02', type: 'EGRESO', concept: 'Depósito para cubrir cheque N° CHK-009812', amount: 250000, referenceNumber: 'DEP-4421', notes: 'Cobertura de cheque proveedor carnes' },
-  { id: 'bm3', bankName: 'Banco Galicia', date: '2026-09-03', type: 'EGRESO', concept: 'Mantenimiento de Cuenta / Comisión Bancaria', amount: 18500, referenceNumber: 'COM-001', notes: 'Débito automático Banco Galicia' },
-  { id: 'bm4', bankName: 'Banco Nación', date: '2026-09-02', type: 'INGRESO', concept: 'Acreditación ventas tarjeta de crédito', amount: 320000, referenceNumber: 'ACR-8819', notes: 'Cierre de lote posnet' },
-];
+const INITIAL_BANK_MOVEMENTS: BankMovement[] = [];
 
 const GastronomyContext = createContext<GastronomyContextType | undefined>(undefined);
 
@@ -322,22 +195,23 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     try {
+      if (!localStorage.getItem('gastro_reset_datos_demo_v1')) {
+        [
+          'gastro_sales', 'gastro_suppliers', 'gastro_purchases',
+          'gastro_supplier_payments', 'gastro_expenses', 'gastro_checks',
+          'gastro_employees', 'gastro_advances', 'gastro_initial_balances',
+          'gastro_bank_movements', 'gastro_cash_movements',
+        ].forEach(key => localStorage.removeItem(key));
+        localStorage.setItem('gastro_reset_datos_demo_v1', 'true');
+      }
+
       const savedSales = localStorage.getItem('gastro_sales');
       if (savedSales) setSales(JSON.parse(savedSales));
       const savedRole = localStorage.getItem('gastro_role');
       if (savedRole) setRole(savedRole as UserRole);
 
       const savedSuppliers = localStorage.getItem('gastro_suppliers');
-      if (savedSuppliers) {
-        const parsed: Supplier[] = JSON.parse(savedSuppliers);
-        const merged = [...parsed];
-        for (const initSup of INITIAL_SUPPLIERS) {
-          if (!merged.some(s => s.name.toLowerCase().trim() === initSup.name.toLowerCase().trim())) {
-            merged.push(initSup);
-          }
-        }
-        setSuppliers(merged);
-      }
+      if (savedSuppliers) setSuppliers(JSON.parse(savedSuppliers));
 
       const savedPurchases = localStorage.getItem('gastro_purchases');
       if (savedPurchases) setPurchases(JSON.parse(savedPurchases));

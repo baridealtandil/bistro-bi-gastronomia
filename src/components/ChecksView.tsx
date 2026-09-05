@@ -38,7 +38,7 @@ export const ChecksView: React.FC = () => {
   // Form State para Nuevo Cheque
   const [type, setType] = useState<CheckType['type']>('PROPIO');
   const [number, setNumber] = useState('');
-  const [bank, setBank] = useState('Banco Galicia');
+  const [bank, setBank] = useState('');
   const [issuerOrRecipient, setIssuerOrRecipient] = useState('');
   const [supplierSearchQueryModal, setSupplierSearchQueryModal] = useState('');
   const [dueDate, setDueDate] = useState('');

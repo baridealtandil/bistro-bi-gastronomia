@@ -39,7 +39,7 @@ export const BankAccountsView: React.FC = () => {
 
   // Form State para Saldo Inicial Modal
   const [ibAccountType, setIbAccountType] = useState<'CAJA' | 'MERCADO_PAGO' | 'BANCO'>('BANCO');
-  const [ibBankName, setIbBankName] = useState('Banco Galicia');
+  const [ibBankName, setIbBankName] = useState('');
   const [ibAmount, setIbAmount] = useState('');
   const [ibNotes, setIbNotes] = useState('');
 
@@ -51,7 +51,7 @@ export const BankAccountsView: React.FC = () => {
   const [endDate, setEndDate] = useState('');
 
   // Form State para Nuevo Movimiento Bancario
-  const [bankName, setBankName] = useState('Banco Galicia');
+  const [bankName, setBankName] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [type, setType] = useState<'INGRESO' | 'EGRESO'>('INGRESO');
   const [concept, setConcept] = useState('');
@@ -62,11 +62,6 @@ export const BankAccountsView: React.FC = () => {
   // Lista de bancos únicos presentes en Saldos Iniciales y Movimientos
   const allBankNames = Array.from(
     new Set([
-      'Banco Galicia',
-      'Banco Nación',
-      'Banco Macro',
-      'BBVA',
-      'Santander',
       ...initialBalances.filter(ib => ib.accountType === 'BANCO' && ib.bankName).map(ib => ib.bankName!),
       ...bankMovements.map(bm => bm.bankName)
     ])
@@ -211,7 +206,7 @@ export const BankAccountsView: React.FC = () => {
           <button
             onClick={() => {
               setIbAccountType('BANCO');
-              setIbBankName('Banco Galicia');
+              setIbBankName('');
               setIbAmount('');
               setIbNotes('');
               setShowInitialBalanceModal(true);
@@ -222,7 +217,7 @@ export const BankAccountsView: React.FC = () => {
           </button>
           <button
             onClick={() => {
-              setBankName('Banco Galicia');
+              setBankName('');
               setDate(new Date().toISOString().split('T')[0]);
               setType('INGRESO');
               setConcept('');

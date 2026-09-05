@@ -120,7 +120,7 @@ export const SuppliersView: React.FC = () => {
   const [payMethod, setPayMethod] = useState<SupplierPayment['paymentMethod']>('TRANSFERENCIA');
   const [payAmount, setPayAmount] = useState('');
   const [checkNumber, setCheckNumber] = useState('');
-  const [checkBank, setCheckBank] = useState('Banco Galicia');
+  const [checkBank, setCheckBank] = useState('');
   const [checkDueDate, setCheckDueDate] = useState('');
   const [payNotes, setPayNotes] = useState('');
 
