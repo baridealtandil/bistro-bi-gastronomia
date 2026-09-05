@@ -373,7 +373,23 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (savedCM) setCashMovements(JSON.parse(savedCM));
 
       const savedPartners = localStorage.getItem('gastro_partners');
-      if (savedPartners) setPartners(JSON.parse(savedPartners));
+      if (savedPartners) {
+        const parsedPartners: Partner[] = JSON.parse(savedPartners);
+        // Migración única: navegadores que ya tenían guardados los socios
+        // genéricos ("Socio 1/2/3") de antes de cargar a Franco/David/Gabriel/
+        // Diego se actualizan solos a los datos reales la primera vez que
+        // vuelven a abrir esta pantalla. Si el usuario ya editó o agregó algún
+        // socio propio, esta condición deja de cumplirse y no se toca nada.
+        const sonTodosSociosGenericos =
+          parsedPartners.length > 0 &&
+          parsedPartners.every(p => /^Socio \d+$/.test(p.name) && !p.linkedToPartnerId);
+        if (sonTodosSociosGenericos) {
+          setPartners(INITIAL_PARTNERS);
+          try { localStorage.setItem('gastro_partners', JSON.stringify(INITIAL_PARTNERS)); } catch (e) {}
+        } else {
+          setPartners(parsedPartners);
+        }
+      }
 
       const savedPC = localStorage.getItem('gastro_partner_consumptions');
       if (savedPC) setPartnerConsumptions(JSON.parse(savedPC));
