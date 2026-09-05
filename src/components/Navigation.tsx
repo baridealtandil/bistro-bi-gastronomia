@@ -35,8 +35,12 @@ interface NavigationProps {
   setActiveTab: (tab: TabType) => void;
 }
 
+// Secciones a las que puede acceder el usuario "colab" (login restringido):
+// carga de datos de Ventas y carga de Facturas/Comprobantes de Proveedores.
+export const COLAB_ALLOWED_TABS: TabType[] = ['ventas', 'compras'];
+
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
-  const { role } = useGastronomy();
+  const { role, loginRole } = useGastronomy();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard BI', icon: LayoutDashboard, adminOnly: true },
@@ -51,7 +55,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
     { id: 'make', label: 'Integración Make', icon: Webhook, adminOnly: true },
   ];
 
-  const visibleItems = navItems.filter(item => !item.adminOnly || role === 'ADMIN');
+  const visibleItems = navItems.filter(item => {
+    const passesAdminToggle = !item.adminOnly || role === 'ADMIN';
+    const passesColabLogin = loginRole !== 'colab' || COLAB_ALLOWED_TABS.includes(item.id as TabType);
+    return passesAdminToggle && passesColabLogin;
+  });
 
   return (
     <>
