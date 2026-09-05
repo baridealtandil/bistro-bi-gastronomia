@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { useGastronomy } from '../context/GastronomyContext';
 import { Shield, User, Bell, Sparkles, AlertTriangle, Clock, DollarSign, CheckCircle2, X, LogOut } from 'lucide-react';
 
+import { AdminPinModal } from './AdminPinModal';
+
 interface HeaderProps {
   onOpenAiChat: () => void;
 }
@@ -14,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
     role,
     setRole,
     loginRole,
+    logoutApp,
     primeCostPercentage,
     foodCostPercentage,
     laborCostPercentage,
@@ -23,11 +26,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
   } = useGastronomy();
 
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showAdminPinModal, setShowAdminPinModal] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
-    document.cookie = 'login_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    window.location.href = '/?logout=true';
+    logoutApp();
   };
 
   // Close notifications on outside click
@@ -201,10 +204,15 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
               identidad "colab", porque esa identidad ya tiene la navegación
               restringida a Ventas/Proveedores y no debe poder auto-asignarse
               el rol Admin desde acá. */}
-          {loginRole !== 'colab' && (
           <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
             <button
-              onClick={() => setRole('ADMIN')}
+              onClick={() => {
+                if (loginRole === 'admin') {
+                  setRole('ADMIN');
+                } else {
+                  setShowAdminPinModal(true);
+                }
+              }}
               className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all ${
                 role === 'ADMIN'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow'
@@ -228,7 +236,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
               <span className="hidden sm:inline">Colaborador</span>
             </button>
           </div>
-          )}
 
           {/* Botón de Cerrar Sesión */}
           <button
@@ -241,6 +248,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
           </button>
         </div>
       </div>
+
+      <AdminPinModal isOpen={showAdminPinModal} onClose={() => setShowAdminPinModal(false)} />
     </header>
   );
 };
