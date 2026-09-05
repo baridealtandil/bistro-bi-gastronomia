@@ -55,7 +55,7 @@ export const AdminPinModal: React.FC<EmployeesPinModalProps> = ({ isOpen, onClos
         </div>
 
         <p className="text-xs text-slate-400">
-          Ingrese la clave numérica de Empleados (50126) para acceder a la nómina, fichaje y sueldos del personal.
+          Ingrese la clave numérica de Empleados para acceder a la nómina, fichaje y sueldos del personal.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
