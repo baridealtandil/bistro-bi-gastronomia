@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { GastronomyProvider } from '../context/GastronomyContext';
+import React, { useState, useEffect } from 'react';
+import { GastronomyProvider, useGastronomy } from '../context/GastronomyContext';
 import { Header } from '../components/Header';
-import { Navigation, TabType } from '../components/Navigation';
+import { Navigation, TabType, COLAB_ALLOWED_TABS } from '../components/Navigation';
 import { DashboardView } from '../components/DashboardView';
 import { SalesView } from '../components/SalesView';
 import { SuppliersView } from '../components/SuppliersView';
@@ -18,6 +18,19 @@ import { MakeIntegrationView } from '../components/MakeIntegrationView';
 
 function MainAppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const { loginRole } = useGastronomy();
+  const isColabLogin = loginRole === 'colab';
+
+  // Si entró con el login "colab", no puede quedarse en una pestaña fuera de
+  // Ventas/Proveedores (por ejemplo si ya tenía otra pestaña activa de una
+  // sesión anterior, o mientras se lee la cookie recién montado el componente).
+  useEffect(() => {
+    if (isColabLogin && !COLAB_ALLOWED_TABS.includes(activeTab)) {
+      setActiveTab('ventas');
+    }
+  }, [isColabLogin, activeTab]);
+
+  const canShow = (tab: TabType) => !isColabLogin || COLAB_ALLOWED_TABS.includes(tab);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
@@ -27,16 +40,16 @@ function MainAppContent() {
         <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-          {activeTab === 'dashboard' && <DashboardView onNavigate={(tab) => setActiveTab(tab)} />}
+          {activeTab === 'dashboard' && canShow('dashboard') && <DashboardView onNavigate={(tab) => setActiveTab(tab)} />}
           {activeTab === 'ventas' && <SalesView />}
           {activeTab === 'compras' && <SuppliersView />}
-          {activeTab === 'gastos' && <ExpensesView />}
-          {activeTab === 'cheques' && <ChecksView />}
-          {activeTab === 'bancos' && <BankAccountsView />}
-          {activeTab === 'empleados' && <EmployeesView />}
-          {activeTab === 'socios' && <SociosView />}
-          {activeTab === 'ia' && <AiChatView />}
-          {activeTab === 'make' && <MakeIntegrationView />}
+          {activeTab === 'gastos' && canShow('gastos') && <ExpensesView />}
+          {activeTab === 'cheques' && canShow('cheques') && <ChecksView />}
+          {activeTab === 'bancos' && canShow('bancos') && <BankAccountsView />}
+          {activeTab === 'empleados' && canShow('empleados') && <EmployeesView />}
+          {activeTab === 'socios' && canShow('socios') && <SociosView />}
+          {activeTab === 'ia' && canShow('ia') && <AiChatView />}
+          {activeTab === 'make' && canShow('make') && <MakeIntegrationView />}
         </main>
       </div>
     </div>
