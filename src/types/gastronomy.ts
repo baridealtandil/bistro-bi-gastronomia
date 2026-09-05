@@ -191,6 +191,8 @@ export interface Partner { // "Socio"
   id: string;
   name: string;
   active: boolean;
+  linkedToPartnerId?: string; // id del socio titular al que está vinculado (si es socio adherente)
+  sharePercentage?: number; // % que le corresponde del total de consumos del grupo (ej. 50%)
 }
 
 // Consumo de comida/bebida de un socio que no se cobra en el momento. No es
@@ -210,7 +212,23 @@ export interface PartnerConsumption {
   lastModifiedAt?: string;
 }
 
-// Retiro de Socios: liquida el consumo acumulado y pendiente de un socio
+export interface PartnerWithdrawalShare {
+  partnerId: string;
+  partnerName: string;
+  sharePercentage: number;
+  consumptionTotal: number;
+  withdrawalShare: number;
+}
+
+export interface PartnerWithdrawalCashLine {
+  partnerId: string;
+  partnerName: string;
+  cashAmount: number;
+  cashAccountType?: 'CAJA' | 'MERCADO_PAGO' | 'BANCO';
+  bankName?: string;
+}
+
+// Retiro de Socios: liquida el consumo acumulado y pendiente de un socio (o grupo de socios con %)
 // (no mueve caja/banco, es una compensación contable) y opcionalmente
 // registra además un retiro en efectivo/banco real (ese sí mueve caja/banco).
 export interface PartnerWithdrawal {
@@ -219,11 +237,14 @@ export interface PartnerWithdrawal {
   partnerName: string;
   date: string;
   periodLabel: string; // mes que se liquida, ej. "2026-09"
-  consumptionAmount: number; // total de consumos liquidados en este retiro
-  cashAmount: number; // retiro adicional real en efectivo/banco, 0 si no hubo
+  consumptionAmount: number; // total de consumos liquidados en este retiro (de todo el grupo)
+  cashAmount: number; // retiro adicional real total en efectivo/banco, 0 si no hubo
   cashAccountType?: 'CAJA' | 'MERCADO_PAGO' | 'BANCO';
   bankName?: string;
   notes?: string;
+  shares?: PartnerWithdrawalShare[];
+  cashLines?: PartnerWithdrawalCashLine[];
+  groupPartnerIds?: string[];
 }
 
 

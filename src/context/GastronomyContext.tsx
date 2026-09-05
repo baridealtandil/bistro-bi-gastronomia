@@ -18,7 +18,9 @@ import {
   CashMovement,
   Partner,
   PartnerConsumption,
-  PartnerWithdrawal
+  PartnerWithdrawal,
+  PartnerWithdrawalShare,
+  PartnerWithdrawalCashLine
 } from '../types/gastronomy';
 
 // Interpreta un medio de pago en texto libre (Ventas/Gastos) y dice a qué
@@ -77,6 +79,7 @@ interface GastronomyContextType {
     cashAmount?: number;
     cashAccountType?: 'CAJA' | 'MERCADO_PAGO' | 'BANCO';
     bankName?: string;
+    cashLines?: PartnerWithdrawalCashLine[];
     notes?: string;
   }) => void;
   // Saldos Iniciales & Bancos
@@ -949,37 +952,63 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   };
 
-  // Liquida TODO el consumo pendiente de un socio en un único Retiro: marca esos
-  // consumos como saldados (compensación contable, no mueve caja/banco) y, si además
-  // se especifica un monto en efectivo/banco, sí genera el egreso real correspondiente
-  // (mismo mecanismo que usa un Adelanto a empleado o un Pago a proveedor).
+  // Liquida TODO el consumo pendiente de un socio (y sus socios adherentes vinculados)
+  // en un único Retiro por porcentaje: marca esos consumos como saldados (compensación contable, no mueve caja/banco)
+  // y, si además se especifican montos en efectivo/banco por socio, sí genera los egresos reales correspondientes.
   const addPartnerWithdrawal = (input: {
     partnerId: string;
     date: string;
     cashAmount?: number;
     cashAccountType?: 'CAJA' | 'MERCADO_PAGO' | 'BANCO';
     bankName?: string;
+    cashLines?: PartnerWithdrawalCashLine[];
     notes?: string;
   }) => {
-    const partner = partners.find(p => p.id === input.partnerId);
-    if (!partner) return;
+    const mainPartner = partners.find(p => p.id === input.partnerId);
+    if (!mainPartner) return;
 
-    const pendingConsumptions = partnerConsumptions.filter(pc => pc.partnerId === input.partnerId && !pc.settled);
-    const consumptionAmount = pendingConsumptions.reduce((acc, pc) => acc + pc.amount, 0);
-    const cashAmount = input.cashAmount || 0;
+    // Determinar el grupo completo de socios (titular + adherentes vinculados)
+    const effectiveMainId = mainPartner.linkedToPartnerId || mainPartner.id;
+    const groupPartners = partners.filter(p => p.id === effectiveMainId || p.linkedToPartnerId === effectiveMainId);
+    const groupPartnerIds = groupPartners.map(p => p.id);
+
+    // Consumos pendientes de todo el grupo
+    const groupConsumptions = partnerConsumptions.filter(pc => groupPartnerIds.includes(pc.partnerId) && !pc.settled);
+    const totalGroupConsumption = groupConsumptions.reduce((acc, pc) => acc + pc.amount, 0);
+
+    // Calcular distribución por % para cada integrante del grupo
+    const shares: PartnerWithdrawalShare[] = groupPartners.map(p => {
+      const pConsTotal = groupConsumptions.filter(pc => pc.partnerId === p.id).reduce((acc, pc) => acc + pc.amount, 0);
+      const sharePct = p.sharePercentage !== undefined ? p.sharePercentage : (groupPartners.length > 1 ? 100 / groupPartners.length : 100);
+      const withdrawalShare = totalGroupConsumption * (sharePct / 100);
+      return {
+        partnerId: p.id,
+        partnerName: p.name,
+        sharePercentage: sharePct,
+        consumptionTotal: pConsTotal,
+        withdrawalShare
+      };
+    });
+
+    const totalCashAmount = input.cashLines && input.cashLines.length > 0
+      ? input.cashLines.reduce((acc, cl) => acc + (cl.cashAmount || 0), 0)
+      : (input.cashAmount || 0);
 
     const withdrawalId = `pw_${Date.now()}`;
     const newWithdrawal: PartnerWithdrawal = {
       id: withdrawalId,
-      partnerId: partner.id,
-      partnerName: partner.name,
+      partnerId: mainPartner.id,
+      partnerName: mainPartner.name,
       date: input.date,
       periodLabel: input.date.slice(0, 7),
-      consumptionAmount,
-      cashAmount,
+      consumptionAmount: totalGroupConsumption,
+      cashAmount: totalCashAmount,
       cashAccountType: input.cashAccountType,
       bankName: input.bankName,
-      notes: input.notes
+      notes: input.notes,
+      shares,
+      cashLines: input.cashLines,
+      groupPartnerIds
     };
 
     setPartnerWithdrawals(prev => {
@@ -988,10 +1017,10 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return updated;
     });
 
-    // Marcar como liquidados todos los consumos pendientes que entraron en este retiro
+    // Marcar como liquidados todos los consumos pendientes de todo el grupo
     setPartnerConsumptions(prev => {
       const updated = prev.map(pc =>
-        (pc.partnerId === input.partnerId && !pc.settled)
+        (groupPartnerIds.includes(pc.partnerId) && !pc.settled)
           ? { ...pc, settled: true, settlementId: withdrawalId }
           : pc
       );
@@ -999,15 +1028,40 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return updated;
     });
 
-    // Si además se retiró efectivo/banco real (aparte de lo consumido), sí impacta la cuenta real usada
-    if (cashAmount > 0) {
+    // Registrar retiros de dinero real (efectivo/banco)
+    if (input.cashLines && input.cashLines.length > 0) {
+      input.cashLines.forEach(cl => {
+        if (cl.cashAmount > 0) {
+          if (cl.cashAccountType === 'CAJA' || cl.cashAccountType === 'MERCADO_PAGO') {
+            pushCashMovement({
+              accountType: cl.cashAccountType,
+              date: input.date,
+              direction: 'EGRESO',
+              concept: `Retiro de socio: ${cl.partnerName}`,
+              amount: cl.cashAmount,
+              sourceModule: 'RETIRO_SOCIO',
+              sourceId: withdrawalId
+            });
+          } else if (cl.cashAccountType === 'BANCO' && cl.bankName) {
+            addBankMovement({
+              bankName: cl.bankName,
+              date: input.date,
+              type: 'EGRESO',
+              concept: `Retiro de socio: ${cl.partnerName}`,
+              amount: cl.cashAmount,
+              notes: 'Generado automáticamente desde Socios'
+            });
+          }
+        }
+      });
+    } else if (totalCashAmount > 0) {
       if (input.cashAccountType === 'CAJA' || input.cashAccountType === 'MERCADO_PAGO') {
         pushCashMovement({
           accountType: input.cashAccountType,
           date: input.date,
           direction: 'EGRESO',
-          concept: `Retiro de socio: ${partner.name}`,
-          amount: cashAmount,
+          concept: `Retiro de socio: ${mainPartner.name}`,
+          amount: totalCashAmount,
           sourceModule: 'RETIRO_SOCIO',
           sourceId: withdrawalId
         });
@@ -1017,12 +1071,10 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             bankName: input.bankName,
             date: input.date,
             type: 'EGRESO',
-            concept: `Retiro de socio: ${partner.name}`,
-            amount: cashAmount,
+            concept: `Retiro de socio: ${mainPartner.name}`,
+            amount: totalCashAmount,
             notes: 'Generado automáticamente desde Socios'
           });
-        } else {
-          console.warn(`Retiro en efectivo/banco de ${partner.name} sin banco especificado: no se descontó de ningún saldo bancario.`);
         }
       }
     }
