@@ -59,33 +59,49 @@ function resolveRole(request: NextRequest): LoginRole | 'open' | null {
 }
 
 export function proxy(request: NextRequest) {
-      const role = resolveRole(request);
+  // Manejo de cierre de sesión explícito: si la URL incluye ?logout=true o /api/logout,
+  // se elimina la cookie y se responde 401 Unauthorized con WWW-Authenticate para que
+  // el navegador borre las credenciales en caché y vuelva a pedir el diálogo de login.
+  if (request.nextUrl.searchParams.has('logout') || request.nextUrl.pathname === '/api/logout') {
+    const response = new NextResponse('Sesión cerrada. Por favor ingrese sus credenciales nuevamente.', {
+      status: 401,
+      headers: {
+        'WWW-Authenticate': 'Basic realm="Bistro BI", charset="UTF-8"',
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    });
+    response.cookies.delete('login_role');
+    return response;
+  }
+
+  const role = resolveRole(request);
 
   if (role === 'open') {
-          return NextResponse.next();
+    return NextResponse.next();
   }
 
   if (role === 'admin' || role === 'colab') {
-          const response = NextResponse.next();
-          // Cookie legible por el cliente (no HttpOnly) para que la app React
-        // sepa que identidad entro y pueda restringir la navegacion de "colab"
-        // a Ventas y Proveedores. No reemplaza la Basic Auth: solo la
-        // complementa del lado del cliente.
-        response.cookies.set({
-                  name: 'login_role',
-                  value: role,
-                  path: '/',
-                  sameSite: 'lax',
-                  maxAge: 60 * 60 * 24 * 30,
-        });
-          return response;
+    const response = NextResponse.next();
+    // Cookie legible por el cliente (no HttpOnly) para que la app React
+    // sepa que identidad entro y pueda restringir la navegacion de "colab"
+    // a Ventas y Proveedores. No reemplaza la Basic Auth: solo la
+    // complementa del lado del cliente.
+    response.cookies.set({
+      name: 'login_role',
+      value: role,
+      path: '/',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    return response;
   }
 
   return new NextResponse('Autenticacion requerida.', {
-          status: 401,
-          headers: {
-                    'WWW-Authenticate': 'Basic realm="Bistro BI", charset="UTF-8"',
-          },
+    status: 401,
+    headers: {
+      'WWW-Authenticate': 'Basic realm="Bistro BI", charset="UTF-8"',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
   });
 }
 
