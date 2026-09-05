@@ -98,10 +98,14 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
                     lockEmployees();
                     if (activeTab === 'empleados') setActiveTab('dashboard');
                   }}
-                  className="ml-auto flex items-center gap-1 text-[10px] bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded-md font-bold transition-colors"
+                  className={`ml-auto flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-lg font-bold transition-all shadow-sm ${
+                    isActive
+                      ? 'bg-slate-950/90 text-rose-400 hover:bg-slate-950 border border-slate-900/50'
+                      : 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30'
+                  }`}
                   title="Bloquear acceso al módulo de Empleados"
                 >
-                  <Lock className="w-3 h-3 text-rose-400" />
+                  <Lock className="w-3 h-3 text-rose-400 shrink-0" />
                   <span>Cerrar</span>
                 </span>
               )}
