@@ -56,9 +56,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
   ];
 
   const visibleItems = navItems.filter(item => {
-    const passesAdminToggle = !item.adminOnly || role === 'ADMIN';
-    const passesColabLogin = loginRole !== 'colab' || COLAB_ALLOWED_TABS.includes(item.id as TabType);
-    return passesAdminToggle && passesColabLogin;
+    const isColabMode = role === 'COLLABORATOR' || loginRole === 'colab';
+    if (isColabMode) {
+      return COLAB_ALLOWED_TABS.includes(item.id as TabType);
+    }
+    return true;
   });
 
   return (
