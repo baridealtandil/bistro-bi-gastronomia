@@ -13,6 +13,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
   const {
     role,
     setRole,
+    loginRole,
     primeCostPercentage,
     foodCostPercentage,
     laborCostPercentage,
@@ -191,7 +192,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
             )}
           </div>
 
-          {/* Role Toggle Switcher */}
+          {/* Role Toggle Switcher: no se muestra si el login fue con la
+              identidad "colab", porque esa identidad ya tiene la navegación
+              restringida a Ventas/Proveedores y no debe poder auto-asignarse
+              el rol Admin desde acá. */}
+          {loginRole !== 'colab' && (
           <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
             <button
               onClick={() => setRole('ADMIN')}
@@ -218,6 +223,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
               <span className="hidden sm:inline">Colaborador</span>
             </button>
           </div>
+          )}
         </div>
       </div>
     </header>
