@@ -46,6 +46,7 @@ interface GastronomyContextType {
   authenticateApp: (pin: string) => Promise<{ success: boolean; message?: string }>;
   authenticateEmployees: (pin: string) => Promise<{ success: boolean; message?: string }>;
   authenticateAdmin: (pin: string) => Promise<{ success: boolean; message?: string }>;
+  lockEmployees: () => void;
   logoutApp: () => void;
   sales: Sale[];
   addSale: (sale: Omit<Sale, 'id' | 'netAmount'>) => void;
@@ -1237,6 +1238,12 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return authenticateEmployees(pin);
   };
 
+  const lockEmployees = () => {
+    setIsEmployeesUnlocked(false);
+    document.cookie = 'employees_unlocked=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    localStorage.removeItem('gastro_employees_unlocked');
+  };
+
   const logoutApp = () => {
     setIsAppAuthenticated(false);
     setIsEmployeesUnlocked(false);
@@ -1258,6 +1265,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         authenticateApp,
         authenticateEmployees,
         authenticateAdmin,
+        lockEmployees,
         logoutApp,
         sales,
         addSale,
