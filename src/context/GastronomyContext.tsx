@@ -40,6 +40,7 @@ const currentMonthKey = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 interface GastronomyContextType {
   role: UserRole;
   setRole: (role: UserRole) => void;
+  loginRole: LoginRole;
   sales: Sale[];
   addSale: (sale: Omit<Sale, 'id' | 'netAmount'>) => void;
   editSale: (id: string, saleData: Partial<Sale>) => void;
@@ -153,8 +154,15 @@ const INITIAL_BANK_MOVEMENTS: BankMovement[] = [];
 
 const GastronomyContext = createContext<GastronomyContextType | undefined>(undefined);
 
+export type LoginRole = 'admin' | 'colab' | null;
+
 export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [role, setRole] = useState<UserRole>('ADMIN');
+  // Identidad de login (cookie `login_role` seteada por src/proxy.ts). No
+  // confundir con `role` (el selector Admin/Colaborador de arriba, que es
+  // solo un filtro de datos): `loginRole` viene de la Basic Auth y es lo que
+  // restringe de verdad a que secciones puede navegar un usuario "colab".
+  const [loginRole, setLoginRole] = useState<LoginRole>(null);
   const [sales, setSales] = useState<Sale[]>(INITIAL_SALES);
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
   const [purchases, setPurchases] = useState<PurchaseInvoice[]>(INITIAL_PURCHASES);
@@ -209,6 +217,12 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (savedSales) setSales(JSON.parse(savedSales));
       const savedRole = localStorage.getItem('gastro_role');
       if (savedRole) setRole(savedRole as UserRole);
+
+      const cookiePart = document.cookie.split('; ').find(c => c.startsWith('login_role='));
+      if (cookiePart) {
+        const cookieRole = decodeURIComponent(cookiePart.slice('login_role='.length));
+        if (cookieRole === 'admin' || cookieRole === 'colab') setLoginRole(cookieRole);
+      }
 
       const savedSuppliers = localStorage.getItem('gastro_suppliers');
       if (savedSuppliers) setSuppliers(JSON.parse(savedSuppliers));
@@ -1178,6 +1192,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       value={{
         role,
         setRole,
+        loginRole,
         sales,
         addSale,
         editSale,
