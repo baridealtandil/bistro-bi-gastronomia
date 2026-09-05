@@ -207,9 +207,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
           <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
             <button
               onClick={() => {
-                if (loginRole === 'admin') {
-                  setRole('ADMIN');
-                } else {
+                if (role !== 'ADMIN') {
                   setShowAdminPinModal(true);
                 }
               }}
