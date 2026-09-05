@@ -31,6 +31,7 @@ interface GastronomyContextType {
   checks: Check[];
   addCheck: (check: Omit<Check, 'id'>) => void;
   employees: Employee[];
+  addEmployee: (employee: Omit<Employee, 'id'>) => void;
   advances: Advance[];
   addAdvance: (advance: Omit<Advance, 'id'>) => void;
   dishes: Dish[];
@@ -219,6 +220,12 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const savedChecks = localStorage.getItem('gastro_checks');
       if (savedChecks) setChecks(JSON.parse(savedChecks));
+
+      const savedEmployees = localStorage.getItem('gastro_employees');
+      if (savedEmployees) setEmployees(JSON.parse(savedEmployees));
+
+      const savedAdvances = localStorage.getItem('gastro_advances');
+      if (savedAdvances) setAdvances(JSON.parse(savedAdvances));
     } catch (e) {
       console.error(e);
     }
@@ -403,9 +410,22 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const addEmployee = (employeeData: Omit<Employee, 'id'>) => {
+    const newEmp: Employee = { ...employeeData, id: `emp_${Date.now()}` };
+    setEmployees(prev => {
+      const updated = [...prev, newEmp];
+      try { localStorage.setItem('gastro_employees', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
   const addAdvance = (advanceData: Omit<Advance, 'id'>) => {
     const newAdv: Advance = { ...advanceData, id: `adv_${Date.now()}` };
-    setAdvances([newAdv, ...advances]);
+    setAdvances(prev => {
+      const updated = [newAdv, ...prev];
+      try { localStorage.setItem('gastro_advances', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
   };
 
   // Cálculos de KPIs cruzados
@@ -511,6 +531,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         checks,
         addCheck,
         employees,
+        addEmployee,
         advances,
         addAdvance,
         dishes,

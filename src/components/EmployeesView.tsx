@@ -2,17 +2,24 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Users, Plus, DollarSign, Calendar, ShieldCheck, Search, Filter, X, FileText } from 'lucide-react';
+import { Users, Plus, DollarSign, Calendar, ShieldCheck, Search, Filter, X, FileText, UserPlus } from 'lucide-react';
 import { DateRangePicker } from './DateRangePicker';
 
 export const EmployeesView: React.FC = () => {
-  const { employees, advances, addAdvance, totalLaborMonth, laborCostPercentage } = useGastronomy();
+  const { employees, addEmployee, advances, addAdvance, totalLaborMonth, laborCostPercentage } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
+  const [showAddEmpModal, setShowAddEmpModal] = useState(false);
 
   // Filtro de Búsqueda y Almanaque Rango de Fechas (Desde - Hasta)
   const [searchEmp, setSearchEmp] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Form State para Nuevo Empleado
+  const [empName, setEmpName] = useState('');
+  const [empRole, setEmpRole] = useState('COCINA');
+  const [empPaymentType, setEmpPaymentType] = useState<'MENSUAL' | 'JORNAL'>('MENSUAL');
+  const [empBaseSalary, setEmpBaseSalary] = useState('');
 
   // Form State para Nuevo Adelanto
   const [employeeId, setEmployeeId] = useState(employees[0]?.id || '');
@@ -20,11 +27,30 @@ export const EmployeesView: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [advanceDate, setAdvanceDate] = useState(new Date().toISOString().split('T')[0]);
 
+  const handleAddEmployee = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!empName || !empBaseSalary || parseFloat(empBaseSalary) <= 0) return;
+
+    addEmployee({
+      name: empName.trim(),
+      role: empRole.trim().toUpperCase() as any,
+      paymentType: empPaymentType,
+      baseSalary: parseFloat(empBaseSalary),
+      active: true
+    });
+
+    setEmpName('');
+    setEmpBaseSalary('');
+    setShowAddEmpModal(false);
+  };
+
   const handleAddAdvance = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || parseFloat(amount) <= 0) return;
 
     const emp = employees.find(e => e.id === employeeId) || employees[0];
+
+    if (!emp) return;
 
     addAdvance({
       employeeId: emp.id,
@@ -69,21 +95,40 @@ export const EmployeesView: React.FC = () => {
             Personal, Sueldos y Adelantos (Labor Cost)
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Mantén la nómina de empleados bajo control y filtra vales y adelantos con el almanaque por rango de fechas.
+            Gestión completa de personal, sueldos base, carga de nuevos empleados y adelantos.
           </p>
         </div>
-        <button
-          onClick={() => {
-            setAmount('');
-            setNotes('');
-            setAdvanceDate(new Date().toISOString().split('T')[0]);
-            setShowModal(true);
-          }}
-          className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          + Registrar Adelanto de Sueldo
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setEmpName('');
+              setEmpBaseSalary('');
+              setEmpRole('COCINA');
+              setEmpPaymentType('MENSUAL');
+              setShowAddEmpModal(true);
+            }}
+            className="flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
+          >
+            <UserPlus className="w-4 h-4" />
+            + Agregar Empleado
+          </button>
+
+          <button
+            onClick={() => {
+              if (employees.length > 0 && !employeeId) {
+                setEmployeeId(employees[0].id);
+              }
+              setAmount('');
+              setNotes('');
+              setAdvanceDate(new Date().toISOString().split('T')[0]);
+              setShowModal(true);
+            }}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            + Registrar Adelanto
+          </button>
+        </div>
       </div>
 
       {/* KPI Labor Cost */}
@@ -255,6 +300,94 @@ export const EmployeesView: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Modal Cargar Nuevo Empleado */}
+      {showAddEmpModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-emerald-400" />
+                Cargar Nuevo Empleado a la Nómina
+              </h3>
+              <button onClick={() => setShowAddEmpModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
+            </div>
+
+            <form onSubmit={handleAddEmployee} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1 font-medium">Nombre y Apellido del Empleado</label>
+                <input
+                  type="text"
+                  placeholder="Ej. Matías Fernández"
+                  value={empName}
+                  onChange={e => setEmpName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-emerald-500 outline-none font-bold"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1 font-medium">Puesto / Rol</label>
+                  <select
+                    value={empRole}
+                    onChange={e => setEmpRole(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-emerald-500 outline-none font-medium"
+                  >
+                    <option value="COCINA">COCINA</option>
+                    <option value="MOZO">MOZO / SALÓN</option>
+                    <option value="BARRA">BARRA / BARTENDER</option>
+                    <option value="ENCAJERO">CAJA / CAJERO</option>
+                    <option value="LIMPIEZA">LIMPIEZA & BHA</option>
+                    <option value="GERENTE">ENCARGADO / GERENTE</option>
+                    <option value="DELIVERY">DELIVERY</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1 font-medium">Modalidad de Pago</label>
+                  <select
+                    value={empPaymentType}
+                    onChange={e => setEmpPaymentType(e.target.value as 'MENSUAL' | 'JORNAL')}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-emerald-500 outline-none font-medium"
+                  >
+                    <option value="MENSUAL">MENSUAL</option>
+                    <option value="JORNAL">JORNAL / DIARIO</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1 font-medium">Sueldo / Salario Base ($)</label>
+                <input
+                  type="number"
+                  placeholder="Ej. 650000"
+                  value={empBaseSalary}
+                  onChange={e => setEmpBaseSalary(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-emerald-400 font-bold focus:border-emerald-500 outline-none"
+                  required
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddEmpModal(false)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold hover:bg-slate-700 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg transition-colors"
+                >
+                  Guardar Empleado
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal Registrar Adelanto */}
       {showModal && (
