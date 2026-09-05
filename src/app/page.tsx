@@ -15,41 +15,57 @@ import { SociosView } from '../components/SociosView';
 import { DishesView } from '../components/DishesView';
 import { AiChatView } from '../components/AiChatView';
 import { MakeIntegrationView } from '../components/MakeIntegrationView';
+import { AdminPinModal as EmployeesPinModal } from '../components/AdminPinModal';
 import { PinLoginModal } from '../components/PinLoginModal';
 
 function MainAppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  const { role, loginRole } = useGastronomy();
-  const isColabMode = role === 'COLLABORATOR' || loginRole === 'colab';
+  const { isEmployeesUnlocked } = useGastronomy();
+  const [showEmployeesModal, setShowEmployeesModal] = useState(false);
 
-  // Si está en modo "colaborador", no puede quedarse en una pestaña fuera de Ventas/Proveedores
   useEffect(() => {
-    if (isColabMode && !COLAB_ALLOWED_TABS.includes(activeTab)) {
-      setActiveTab('ventas');
+    if (activeTab === 'empleados' && !isEmployeesUnlocked) {
+      setShowEmployeesModal(true);
     }
-  }, [isColabMode, activeTab]);
+  }, [activeTab, isEmployeesUnlocked]);
 
-  const canShow = (tab: TabType) => !isColabMode || COLAB_ALLOWED_TABS.includes(tab);
+  const handleTabChange = (tab: TabType) => {
+    if (tab === 'empleados' && !isEmployeesUnlocked) {
+      setShowEmployeesModal(true);
+      setActiveTab('empleados');
+    } else {
+      setActiveTab(tab);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
       <PinLoginModal />
-      <Header onOpenAiChat={() => setActiveTab('ia')} />
+      <EmployeesPinModal
+        isOpen={showEmployeesModal && !isEmployeesUnlocked}
+        onClose={() => {
+          setShowEmployeesModal(false);
+          if (!isEmployeesUnlocked) setActiveTab('dashboard');
+        }}
+      />
+      <Header onOpenAiChat={() => handleTabChange('ia')} />
 
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
-        <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Navigation activeTab={activeTab} setActiveTab={handleTabChange} />
 
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-          {activeTab === 'dashboard' && canShow('dashboard') && <DashboardView onNavigate={(tab) => setActiveTab(tab)} />}
+          {activeTab === 'dashboard' && <DashboardView onNavigate={(tab) => handleTabChange(tab)} />}
           {activeTab === 'ventas' && <SalesView />}
           {activeTab === 'compras' && <SuppliersView />}
-          {activeTab === 'gastos' && canShow('gastos') && <ExpensesView />}
-          {activeTab === 'cheques' && canShow('cheques') && <ChecksView />}
-          {activeTab === 'bancos' && canShow('bancos') && <BankAccountsView />}
-          {activeTab === 'empleados' && canShow('empleados') && <EmployeesView />}
-          {activeTab === 'socios' && canShow('socios') && <SociosView />}
-          {activeTab === 'ia' && canShow('ia') && <AiChatView />}
-          {activeTab === 'make' && canShow('make') && <MakeIntegrationView />}
+          {activeTab === 'gastos' && <ExpensesView />}
+          {activeTab === 'cheques' && <ChecksView />}
+          {activeTab === 'bancos' && <BankAccountsView />}
+          {activeTab === 'empleados' && (
+            isEmployeesUnlocked ? <EmployeesView /> : null
+          )}
+          {activeTab === 'socios' && <SociosView />}
+          {activeTab === 'ia' && <AiChatView />}
+          {activeTab === 'make' && <MakeIntegrationView />}
         </main>
       </div>
     </div>

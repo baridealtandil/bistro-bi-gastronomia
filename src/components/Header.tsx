@@ -200,41 +200,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
             )}
           </div>
 
-          {/* Role Toggle Switcher: no se muestra si el login fue con la
-              identidad "colab", porque esa identidad ya tiene la navegación
-              restringida a Ventas/Proveedores y no debe poder auto-asignarse
-              el rol Admin desde acá. */}
-          <div className="flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
-            <button
-              onClick={() => {
-                if (role !== 'ADMIN') {
-                  setShowAdminPinModal(true);
-                }
-              }}
-              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all ${
-                role === 'ADMIN'
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Acceso total a finanzas, sueldos y configuración"
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Admin</span>
-            </button>
-            <button
-              onClick={() => setRole('COLLABORATOR')}
-              className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-all ${
-                role === 'COLLABORATOR'
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Carga rápida de datos sin métricas sensibles"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Colaborador</span>
-            </button>
-          </div>
-
           {/* Botón de Cerrar Sesión */}
           <button
             onClick={handleLogout}
@@ -246,8 +211,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAiChat }) => {
           </button>
         </div>
       </div>
-
-      <AdminPinModal isOpen={showAdminPinModal} onClose={() => setShowAdminPinModal(false)} />
     </header>
   );
 };

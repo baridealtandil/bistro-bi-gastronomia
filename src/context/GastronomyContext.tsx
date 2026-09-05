@@ -42,7 +42,9 @@ interface GastronomyContextType {
   setRole: (role: UserRole) => void;
   loginRole: LoginRole;
   isAppAuthenticated: boolean;
+  isEmployeesUnlocked: boolean;
   authenticateApp: (pin: string) => Promise<{ success: boolean; message?: string }>;
+  authenticateEmployees: (pin: string) => Promise<{ success: boolean; message?: string }>;
   authenticateAdmin: (pin: string) => Promise<{ success: boolean; message?: string }>;
   logoutApp: () => void;
   sales: Sale[];
@@ -161,9 +163,10 @@ const GastronomyContext = createContext<GastronomyContextType | undefined>(undef
 export type LoginRole = 'admin' | 'colab' | null;
 
 export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [role, setRole] = useState<UserRole>('COLLABORATOR');
+  const [role, setRole] = useState<UserRole>('ADMIN');
   const [isAppAuthenticated, setIsAppAuthenticated] = useState<boolean>(false);
-  const [loginRole, setLoginRole] = useState<LoginRole>(null);
+  const [isEmployeesUnlocked, setIsEmployeesUnlocked] = useState<boolean>(false);
+  const [loginRole, setLoginRole] = useState<LoginRole>('admin');
   const [sales, setSales] = useState<Sale[]>(INITIAL_SALES);
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
   const [purchases, setPurchases] = useState<PurchaseInvoice[]>(INITIAL_PURCHASES);
@@ -216,8 +219,6 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const savedSales = localStorage.getItem('gastro_sales');
       if (savedSales) setSales(JSON.parse(savedSales));
-      const savedRole = localStorage.getItem('gastro_role');
-      if (savedRole) setRole(savedRole as UserRole);
 
       const authedCookie = document.cookie.split('; ').find(c => c.startsWith('app_authenticated='));
       const authedLocal = localStorage.getItem('gastro_app_authed');
@@ -225,14 +226,10 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setIsAppAuthenticated(true);
       }
 
-      const cookiePart = document.cookie.split('; ').find(c => c.startsWith('login_role='));
-      if (cookiePart) {
-        const cookieRole = decodeURIComponent(cookiePart.slice('login_role='.length));
-        if (cookieRole === 'admin' || cookieRole === 'colab') {
-          setLoginRole(cookieRole as LoginRole);
-          if (cookieRole === 'admin') setRole('ADMIN');
-          else if (cookieRole === 'colab') setRole('COLLABORATOR');
-        }
+      const employeesUnlockedLocal = localStorage.getItem('gastro_employees_unlocked');
+      const employeesUnlockedCookie = document.cookie.split('; ').find(c => c.startsWith('employees_unlocked='));
+      if (employeesUnlockedLocal === 'true' || employeesUnlockedCookie) {
+        setIsEmployeesUnlocked(true);
       }
 
       const savedSuppliers = localStorage.getItem('gastro_suppliers');
@@ -1208,9 +1205,26 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const data = await res.json();
       if (data.success) {
         setIsAppAuthenticated(true);
-        setLoginRole(data.role);
-        setRole(data.role === 'admin' ? 'ADMIN' : 'COLLABORATOR');
         localStorage.setItem('gastro_app_authed', 'true');
+        return { success: true };
+      }
+      return { success: false, message: data.message };
+    } catch (e) {
+      return { success: false, message: 'Error de conexión.' };
+    }
+  };
+
+  const authenticateEmployees = async (pin: string) => {
+    try {
+      const res = await fetch('/api/auth/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, targetRole: 'employees' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsEmployeesUnlocked(true);
+        localStorage.setItem('gastro_employees_unlocked', 'true');
         return { success: true };
       }
       return { success: false, message: data.message };
@@ -1220,57 +1234,29 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const authenticateAdmin = async (pin: string) => {
-    try {
-      const res = await fetch('/api/auth/verify-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin, targetRole: 'admin' })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setIsAppAuthenticated(true);
-        setLoginRole('admin');
-        setRole('ADMIN');
-        localStorage.setItem('gastro_app_authed', 'true');
-        return { success: true };
-      }
-      return { success: false, message: data.message };
-    } catch (e) {
-      return { success: false, message: 'Error de conexión.' };
-    }
+    return authenticateEmployees(pin);
   };
 
   const logoutApp = () => {
     setIsAppAuthenticated(false);
-    setLoginRole(null);
-    setRole('COLLABORATOR');
+    setIsEmployeesUnlocked(false);
     document.cookie = 'app_authenticated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'employees_unlocked=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'login_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     localStorage.removeItem('gastro_app_authed');
-  };
-
-  const handleSetRole = (newRole: UserRole) => {
-    setRole(newRole);
-    if (typeof window !== 'undefined') {
-      try { localStorage.setItem('gastro_role', newRole); } catch (e) {}
-    }
-    if (newRole === 'COLLABORATOR') {
-      setLoginRole('colab');
-      document.cookie = 'login_role=colab; path=/; max-age=2592000; SameSite=Lax';
-    } else if (newRole === 'ADMIN') {
-      setLoginRole('admin');
-      document.cookie = 'login_role=admin; path=/; max-age=2592000; SameSite=Lax';
-    }
+    localStorage.removeItem('gastro_employees_unlocked');
   };
 
   return (
     <GastronomyContext.Provider
       value={{
         role,
-        setRole: handleSetRole,
+        setRole,
         loginRole,
         isAppAuthenticated,
+        isEmployeesUnlocked,
         authenticateApp,
+        authenticateEmployees,
         authenticateAdmin,
         logoutApp,
         sales,
