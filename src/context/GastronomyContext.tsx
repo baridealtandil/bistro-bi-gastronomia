@@ -154,9 +154,9 @@ const INITIAL_BANK_MOVEMENTS: BankMovement[] = [];
 
 const GastronomyContext = createContext<GastronomyContextType | undefined>(undefined);
 
-export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  export type LoginRole = 'admin' | 'colab' | null;
+export type LoginRole = 'admin' | 'colab' | null;
 
+export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [role, setRole] = useState<UserRole>('ADMIN');
   // Identidad de login (cookie `login_role` seteada por src/proxy.ts). No
   // confundir con `role` (el selector Admin/Colaborador de arriba, que es
