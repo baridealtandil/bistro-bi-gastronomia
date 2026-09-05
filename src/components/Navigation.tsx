@@ -13,7 +13,8 @@ import {
   UtensilsCrossed,
   Sparkles,
   Webhook,
-  Handshake
+  Handshake,
+  Lock
 } from 'lucide-react';
 import { useGastronomy } from '../context/GastronomyContext';
 
@@ -35,7 +36,6 @@ interface NavigationProps {
   setActiveTab: (tab: TabType) => void;
 }
 
-// Secciones a las que puede acceder el usuario "colab" (acceso a todo excepto Empleados)
 export const COLAB_ALLOWED_TABS: TabType[] = [
   'dashboard',
   'ventas',
@@ -43,6 +43,7 @@ export const COLAB_ALLOWED_TABS: TabType[] = [
   'gastos',
   'cheques',
   'bancos',
+  'empleados',
   'socios',
   'platos',
   'ia',
@@ -50,28 +51,22 @@ export const COLAB_ALLOWED_TABS: TabType[] = [
 ];
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
-  const { role, loginRole } = useGastronomy();
+  const { isEmployeesUnlocked } = useGastronomy();
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard BI', icon: LayoutDashboard, adminOnly: true },
-    { id: 'ventas', label: 'Ventas', icon: TrendingUp, adminOnly: false },
-    { id: 'compras', label: 'Proveedores', icon: Truck, adminOnly: false },
-    { id: 'gastos', label: 'Pagos', icon: Receipt, adminOnly: false },
-    { id: 'cheques', label: 'Cheques', icon: CheckSquare, adminOnly: false },
-    { id: 'bancos', label: 'Bancos', icon: Building2, adminOnly: false },
-    { id: 'empleados', label: 'Empleados', icon: Users, adminOnly: true },
-    { id: 'socios', label: 'Socios', icon: Handshake, adminOnly: true },
-    { id: 'ia', label: 'Asistente IA', icon: Sparkles, adminOnly: false },
-    { id: 'make', label: 'Integración Make', icon: Webhook, adminOnly: true },
+    { id: 'dashboard', label: 'Dashboard BI', icon: LayoutDashboard },
+    { id: 'ventas', label: 'Ventas', icon: TrendingUp },
+    { id: 'compras', label: 'Proveedores', icon: Truck },
+    { id: 'gastos', label: 'Pagos', icon: Receipt },
+    { id: 'cheques', label: 'Cheques', icon: CheckSquare },
+    { id: 'bancos', label: 'Bancos', icon: Building2 },
+    { id: 'empleados', label: 'Empleados', icon: Users, isLocked: !isEmployeesUnlocked },
+    { id: 'socios', label: 'Socios', icon: Handshake },
+    { id: 'ia', label: 'Asistente IA', icon: Sparkles },
+    { id: 'make', label: 'Integración Make', icon: Webhook },
   ];
 
-  const visibleItems = navItems.filter(item => {
-    const isColabMode = role === 'COLLABORATOR' || loginRole === 'colab';
-    if (isColabMode) {
-      return COLAB_ALLOWED_TABS.includes(item.id as TabType);
-    }
-    return true;
-  });
+  const visibleItems = navItems;
 
   return (
     <>
@@ -96,7 +91,10 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
             >
               <Icon className={`w-5 h-5 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
               <span>{item.label}</span>
-              {item.id === 'ia' && (
+              {item.isLocked && (
+                <Lock className="ml-auto w-3.5 h-3.5 text-amber-400/80" />
+              )}
+              {item.id === 'ia' && !item.isLocked && (
                 <span className="ml-auto text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded-md font-bold">
                   IA
                 </span>

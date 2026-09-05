@@ -2,15 +2,16 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Shield, KeyRound, ArrowRight, X } from 'lucide-react';
+import { Users, KeyRound, ArrowRight, X } from 'lucide-react';
 
-interface AdminPinModalProps {
+interface EmployeesPinModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose }) => {
-  const { authenticateAdmin } = useGastronomy();
+export const AdminPinModal: React.FC<EmployeesPinModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const { authenticateEmployees } = useGastronomy();
   const [pin, setPin] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,14 +25,15 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose })
     setLoading(true);
     setErrorMsg('');
 
-    const res = await authenticateAdmin(pin.trim());
+    const res = await authenticateEmployees(pin.trim());
     setLoading(false);
 
     if (res.success) {
       setPin('');
+      if (onSuccess) onSuccess();
       onClose();
     } else {
-      setErrorMsg(res.message || 'Clave de Administrador incorrecta.');
+      setErrorMsg(res.message || 'Clave de Empleados incorrecta.');
       setPin('');
     }
   };
@@ -41,8 +43,8 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose })
       <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-5 shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <Shield className="w-5 h-5 text-amber-400" />
-            Acceso Administrador
+            <Users className="w-5 h-5 text-amber-400" />
+            Acceso a Empleados
           </h3>
           <button
             onClick={onClose}
@@ -53,20 +55,20 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose })
         </div>
 
         <p className="text-xs text-slate-400">
-          Ingrese la clave numérica de Administrador para desbloquear el acceso total a reportes, bancos, sueldos y configuración.
+          Ingrese la clave numérica de Empleados (50126) para acceder a la nómina, fichaje y sueldos del personal.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs text-slate-400 block mb-1.5 font-medium flex items-center gap-1.5">
-              <KeyRound className="w-3.5 h-3.5 text-amber-400" /> Clave de Administrador
+              <KeyRound className="w-3.5 h-3.5 text-amber-400" /> Clave de Empleados
             </label>
             <input
               type="password"
               inputMode="numeric"
               pattern="[0-9]*"
               autoFocus
-              placeholder="••••••"
+              placeholder="•••••"
               value={pin}
               onChange={e => {
                 setErrorMsg('');
@@ -99,7 +101,7 @@ export const AdminPinModal: React.FC<AdminPinModalProps> = ({ isOpen, onClose })
                 <span>Validando...</span>
               ) : (
                 <>
-                  <span>Desbloquear Admin</span>
+                  <span>Desbloquear Empleados</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
