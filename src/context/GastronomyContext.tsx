@@ -41,6 +41,10 @@ interface GastronomyContextType {
   role: UserRole;
   setRole: (role: UserRole) => void;
   loginRole: LoginRole;
+  isAppAuthenticated: boolean;
+  authenticateApp: (pin: string) => Promise<{ success: boolean; message?: string }>;
+  authenticateAdmin: (pin: string) => Promise<{ success: boolean; message?: string }>;
+  logoutApp: () => void;
   sales: Sale[];
   addSale: (sale: Omit<Sale, 'id' | 'netAmount'>) => void;
   editSale: (id: string, saleData: Partial<Sale>) => void;
@@ -157,11 +161,8 @@ const GastronomyContext = createContext<GastronomyContextType | undefined>(undef
 export type LoginRole = 'admin' | 'colab' | null;
 
 export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [role, setRole] = useState<UserRole>('ADMIN');
-  // Identidad de login (cookie `login_role` seteada por src/proxy.ts). No
-  // confundir con `role` (el selector Admin/Colaborador de arriba, que es
-  // solo un filtro de datos): `loginRole` viene de la Basic Auth y es lo que
-  // restringe de verdad a que secciones puede navegar un usuario "colab".
+  const [role, setRole] = useState<UserRole>('COLLABORATOR');
+  const [isAppAuthenticated, setIsAppAuthenticated] = useState<boolean>(false);
   const [loginRole, setLoginRole] = useState<LoginRole>(null);
   const [sales, setSales] = useState<Sale[]>(INITIAL_SALES);
   const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
@@ -218,10 +219,20 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const savedRole = localStorage.getItem('gastro_role');
       if (savedRole) setRole(savedRole as UserRole);
 
+      const authedCookie = document.cookie.split('; ').find(c => c.startsWith('app_authenticated='));
+      const authedLocal = localStorage.getItem('gastro_app_authed');
+      if (authedCookie || authedLocal === 'true') {
+        setIsAppAuthenticated(true);
+      }
+
       const cookiePart = document.cookie.split('; ').find(c => c.startsWith('login_role='));
       if (cookiePart) {
         const cookieRole = decodeURIComponent(cookiePart.slice('login_role='.length));
-        if (cookieRole === 'admin' || cookieRole === 'colab') setLoginRole(cookieRole);
+        if (cookieRole === 'admin' || cookieRole === 'colab') {
+          setLoginRole(cookieRole as LoginRole);
+          if (cookieRole === 'admin') setRole('ADMIN');
+          else if (cookieRole === 'colab') setRole('COLLABORATOR');
+        }
       }
 
       const savedSuppliers = localStorage.getItem('gastro_suppliers');
@@ -1187,12 +1198,67 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   };
 
+  const authenticateApp = async (pin: string) => {
+    try {
+      const res = await fetch('/api/auth/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, targetRole: 'app' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsAppAuthenticated(true);
+        setLoginRole(data.role);
+        setRole(data.role === 'admin' ? 'ADMIN' : 'COLLABORATOR');
+        localStorage.setItem('gastro_app_authed', 'true');
+        return { success: true };
+      }
+      return { success: false, message: data.message };
+    } catch (e) {
+      return { success: false, message: 'Error de conexión.' };
+    }
+  };
+
+  const authenticateAdmin = async (pin: string) => {
+    try {
+      const res = await fetch('/api/auth/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, targetRole: 'admin' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIsAppAuthenticated(true);
+        setLoginRole('admin');
+        setRole('ADMIN');
+        localStorage.setItem('gastro_app_authed', 'true');
+        return { success: true };
+      }
+      return { success: false, message: data.message };
+    } catch (e) {
+      return { success: false, message: 'Error de conexión.' };
+    }
+  };
+
+  const logoutApp = () => {
+    setIsAppAuthenticated(false);
+    setLoginRole(null);
+    setRole('COLLABORATOR');
+    document.cookie = 'app_authenticated=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    document.cookie = 'login_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+    localStorage.removeItem('gastro_app_authed');
+  };
+
   return (
     <GastronomyContext.Provider
       value={{
         role,
         setRole,
         loginRole,
+        isAppAuthenticated,
+        authenticateApp,
+        authenticateAdmin,
+        logoutApp,
         sales,
         addSale,
         editSale,

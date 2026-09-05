@@ -15,6 +15,7 @@ import { SociosView } from '../components/SociosView';
 import { DishesView } from '../components/DishesView';
 import { AiChatView } from '../components/AiChatView';
 import { MakeIntegrationView } from '../components/MakeIntegrationView';
+import { PinLoginModal } from '../components/PinLoginModal';
 
 function MainAppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
@@ -34,6 +35,7 @@ function MainAppContent() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+      <PinLoginModal />
       <Header onOpenAiChat={() => setActiveTab('ia')} />
 
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
