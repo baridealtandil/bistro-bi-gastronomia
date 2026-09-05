@@ -9,6 +9,8 @@ import { SalesView } from '../components/SalesView';
 import { SuppliersView } from '../components/SuppliersView';
 import { ExpensesView } from '../components/ExpensesView';
 import { ChecksView } from '../components/ChecksView';
+import { BankAccountsView } from '../components/BankAccountsView';
+import { InitialBalancesView } from '../components/InitialBalancesView';
 import { EmployeesView } from '../components/EmployeesView';
 import { DishesView } from '../components/DishesView';
 import { AiChatView } from '../components/AiChatView';
@@ -30,6 +32,8 @@ function MainAppContent() {
           {activeTab === 'compras' && <SuppliersView />}
           {activeTab === 'gastos' && <ExpensesView />}
           {activeTab === 'cheques' && <ChecksView />}
+          {activeTab === 'bancos' && <BankAccountsView />}
+          {activeTab === 'saldos' && <InitialBalancesView />}
           {activeTab === 'empleados' && <EmployeesView />}
           {activeTab === 'ia' && <AiChatView />}
           {activeTab === 'make' && <MakeIntegrationView />}

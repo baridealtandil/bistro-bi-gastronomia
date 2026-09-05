@@ -7,7 +7,7 @@ import { Sale } from '../types/gastronomy';
 import { DateRangePicker } from './DateRangePicker';
 
 export const SalesView: React.FC = () => {
-  const { sales, addSale, editSale, expenses, role } = useGastronomy();
+  const { sales, addSale, editSale, expenses, initialBalances, role } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -120,9 +120,13 @@ export const SalesView: React.FC = () => {
     return pm.includes('TRANSFERENCIA') || pm.includes('MERCADO PAGO') || pm.includes('TARJETA') || pm.includes('DÉBITO') || pm.includes('DIGITAL');
   }).reduce((acc, e) => acc + e.amount, 0);
 
+  // Saldos Iniciales Configurados
+  const initialCash = (initialBalances || []).filter(ib => ib.accountType === 'CAJA').reduce((acc, ib) => acc + ib.amount, 0);
+  const initialDigital = (initialBalances || []).filter(ib => ib.accountType === 'MERCADO_PAGO' || ib.accountType === 'BANCO').reduce((acc, ib) => acc + ib.amount, 0);
+
   // Saldos Netos Disponibles en Caja Mayor y MercadoPago/Banco
-  const cajaMayorBalance = periodCashSales - periodCashExpenses;
-  const mercadoPagoBalance = periodDigitalSales - periodDigitalExpenses;
+  const cajaMayorBalance = initialCash + periodCashSales - periodCashExpenses;
+  const mercadoPagoBalance = initialDigital + periodDigitalSales - periodDigitalExpenses;
 
   return (
     <div className="space-y-6 pb-12">

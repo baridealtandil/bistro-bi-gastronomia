@@ -12,7 +12,9 @@ import {
   Employee,
   Advance,
   Dish,
-  ChatMessage
+  ChatMessage,
+  InitialBalance,
+  BankMovement
 } from '../types/gastronomy';
 
 interface GastronomyContextType {
@@ -41,6 +43,15 @@ interface GastronomyContextType {
   dishes: Dish[];
   chatMessages: ChatMessage[];
   sendChatMessage: (text: string) => Promise<void>;
+  // Saldos Iniciales & Bancos
+  initialBalances: InitialBalance[];
+  addInitialBalance: (ib: Omit<InitialBalance, 'id'>) => void;
+  editInitialBalance: (id: string, ibData: Partial<InitialBalance>) => void;
+  deleteInitialBalance: (id: string) => void;
+  bankMovements: BankMovement[];
+  addBankMovement: (bm: Omit<BankMovement, 'id'>) => void;
+  editBankMovement: (id: string, bmData: Partial<BankMovement>) => void;
+  deleteBankMovement: (id: string) => void;
   // Computed KPIs
   totalSalesNetMonth: number;
   totalPurchasesMonth: number;
@@ -173,6 +184,20 @@ const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   }
 ];
 
+const INITIAL_INITIAL_BALANCES: InitialBalance[] = [
+  { id: 'ib1', accountType: 'CAJA', date: '2026-09-01', amount: 350000, notes: 'Fondo de caja chica y cambio inicial' },
+  { id: 'ib2', accountType: 'MERCADO_PAGO', date: '2026-09-01', amount: 820000, notes: 'Saldo acumulado en cuenta de MercadoPago' },
+  { id: 'ib3', accountType: 'BANCO', bankName: 'Banco Galicia', date: '2026-09-01', amount: 1450000, notes: 'Saldo de apertura en cuenta corriente Galicia' },
+  { id: 'ib4', accountType: 'BANCO', bankName: 'Banco Nación', date: '2026-09-01', amount: 620000, notes: 'Saldo apertura Banco Nación' },
+];
+
+const INITIAL_BANK_MOVEMENTS: BankMovement[] = [
+  { id: 'bm1', bankName: 'Banco Galicia', date: '2026-09-01', type: 'INGRESO', concept: 'Transferencia cliente evento especial', amount: 150000, referenceNumber: 'TR-99812', notes: 'Seña evento privado' },
+  { id: 'bm2', bankName: 'Banco Galicia', date: '2026-09-02', type: 'EGRESO', concept: 'Depósito para cubrir cheque N° CHK-009812', amount: 250000, referenceNumber: 'DEP-4421', notes: 'Cobertura de cheque proveedor carnes' },
+  { id: 'bm3', bankName: 'Banco Galicia', date: '2026-09-03', type: 'EGRESO', concept: 'Mantenimiento de Cuenta / Comisión Bancaria', amount: 18500, referenceNumber: 'COM-001', notes: 'Débito automático Banco Galicia' },
+  { id: 'bm4', bankName: 'Banco Nación', date: '2026-09-02', type: 'INGRESO', concept: 'Acreditación ventas tarjeta de crédito', amount: 320000, referenceNumber: 'ACR-8819', notes: 'Cierre de lote posnet' },
+];
+
 const GastronomyContext = createContext<GastronomyContextType | undefined>(undefined);
 
 export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -187,6 +212,8 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [advances, setAdvances] = useState<Advance[]>(INITIAL_ADVANCES);
   const [dishes] = useState<Dish[]>(INITIAL_DISHES);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT_MESSAGES);
+  const [initialBalances, setInitialBalances] = useState<InitialBalance[]>(INITIAL_INITIAL_BALANCES);
+  const [bankMovements, setBankMovements] = useState<BankMovement[]>(INITIAL_BANK_MOVEMENTS);
 
   useEffect(() => {
     try {
@@ -230,6 +257,12 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const savedAdvances = localStorage.getItem('gastro_advances');
       if (savedAdvances) setAdvances(JSON.parse(savedAdvances));
+
+      const savedIB = localStorage.getItem('gastro_initial_balances');
+      if (savedIB) setInitialBalances(JSON.parse(savedIB));
+
+      const savedBM = localStorage.getItem('gastro_bank_movements');
+      if (savedBM) setBankMovements(JSON.parse(savedBM));
     } catch (e) {
       console.error(e);
     }
@@ -508,6 +541,76 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   };
 
+  const addInitialBalance = (ibData: Omit<InitialBalance, 'id'>) => {
+    const newIb: InitialBalance = { ...ibData, id: `ib_${Date.now()}` };
+    setInitialBalances(prev => {
+      const updated = [newIb, ...prev];
+      try { localStorage.setItem('gastro_initial_balances', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const editInitialBalance = (id: string, ibData: Partial<InitialBalance>) => {
+    setInitialBalances(prev => {
+      const updated = prev.map(ib => {
+        if (ib.id === id) {
+          return {
+            ...ib,
+            ...ibData,
+            lastModifiedBy: role,
+            lastModifiedAt: new Date().toISOString()
+          };
+        }
+        return ib;
+      });
+      try { localStorage.setItem('gastro_initial_balances', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const deleteInitialBalance = (id: string) => {
+    setInitialBalances(prev => {
+      const updated = prev.filter(ib => ib.id !== id);
+      try { localStorage.setItem('gastro_initial_balances', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const addBankMovement = (bmData: Omit<BankMovement, 'id'>) => {
+    const newBm: BankMovement = { ...bmData, id: `bm_${Date.now()}` };
+    setBankMovements(prev => {
+      const updated = [newBm, ...prev];
+      try { localStorage.setItem('gastro_bank_movements', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const editBankMovement = (id: string, bmData: Partial<BankMovement>) => {
+    setBankMovements(prev => {
+      const updated = prev.map(bm => {
+        if (bm.id === id) {
+          return {
+            ...bm,
+            ...bmData,
+            lastModifiedBy: role,
+            lastModifiedAt: new Date().toISOString()
+          };
+        }
+        return bm;
+      });
+      try { localStorage.setItem('gastro_bank_movements', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const deleteBankMovement = (id: string) => {
+    setBankMovements(prev => {
+      const updated = prev.filter(bm => bm.id !== id);
+      try { localStorage.setItem('gastro_bank_movements', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
   // Cálculos de KPIs cruzados
   const totalSalesNetMonth = sales.reduce((acc, s) => acc + s.netAmount, 0);
   const totalPurchasesMonth = purchases.reduce((acc, p) => acc + p.amount, 0);
@@ -621,6 +724,14 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         dishes,
         chatMessages,
         sendChatMessage,
+        initialBalances,
+        addInitialBalance,
+        editInitialBalance,
+        deleteInitialBalance,
+        bankMovements,
+        addBankMovement,
+        editBankMovement,
+        deleteBankMovement,
         totalSalesNetMonth,
         totalPurchasesMonth,
         totalLaborMonth,

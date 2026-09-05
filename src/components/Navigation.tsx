@@ -7,6 +7,8 @@ import {
   Truck,
   Receipt,
   CheckSquare,
+  Building2,
+  Wallet,
   Users,
   UtensilsCrossed,
   Sparkles,
@@ -20,6 +22,8 @@ export type TabType =
   | 'compras'
   | 'gastos'
   | 'cheques'
+  | 'bancos'
+  | 'saldos'
   | 'empleados'
   | 'platos'
   | 'ia'
@@ -39,6 +43,8 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
     { id: 'compras', label: 'Proveedores', icon: Truck, adminOnly: false },
     { id: 'gastos', label: 'Pagos', icon: Receipt, adminOnly: false },
     { id: 'cheques', label: 'Cheques', icon: CheckSquare, adminOnly: false },
+    { id: 'bancos', label: 'Bancos', icon: Building2, adminOnly: false },
+    { id: 'saldos', label: 'Saldos Iniciales', icon: Wallet, adminOnly: false },
     { id: 'empleados', label: 'Empleados', icon: Users, adminOnly: true },
     { id: 'ia', label: 'Asistente IA', icon: Sparkles, adminOnly: false },
     { id: 'make', label: 'Integración Make', icon: Webhook, adminOnly: true },

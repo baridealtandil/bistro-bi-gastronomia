@@ -13,13 +13,17 @@ import {
   Search,
   Building,
   DollarSign,
-  UserCheck
+  UserCheck,
+  Edit2,
+  ShieldCheck
 } from 'lucide-react';
 import { Check as CheckType } from '../types/gastronomy';
 
 export const ChecksView: React.FC = () => {
-  const { checks, addCheck, suppliers } = useGastronomy();
+  const { checks, addCheck, editCheck, suppliers, role } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingCheck, setEditingCheck] = useState<CheckType | null>(null);
 
   // Estados de Filtros Avanzados
   const [filterType, setFilterType] = useState<'ALL' | 'PROPIO' | 'TERCERO'>('ALL');
@@ -60,6 +64,37 @@ export const ChecksView: React.FC = () => {
     setIssuerOrRecipient('');
     setSupplierSearchQueryModal('');
     setShowModal(false);
+  };
+
+  const handleStartEdit = (chk: CheckType) => {
+    setEditingCheck(chk);
+    setType(chk.type);
+    setNumber(chk.number);
+    setBank(chk.bank);
+    setIssuerOrRecipient(chk.issuerOrRecipient);
+    setSupplierSearchQueryModal(chk.issuerOrRecipient);
+    setDueDate(chk.dueDate);
+    setAmount(chk.amount.toString());
+    setNotes(chk.notes || '');
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCheck || !number || !amount) return;
+
+    editCheck(editingCheck.id, {
+      type,
+      number,
+      bank,
+      issuerOrRecipient: issuerOrRecipient || supplierSearchQueryModal || 'Sin Especificar',
+      dueDate,
+      amount: parseFloat(amount),
+      notes
+    });
+
+    setShowEditModal(false);
+    setEditingCheck(null);
   };
 
   // Bancos únicos presentes
@@ -268,6 +303,7 @@ export const ChecksView: React.FC = () => {
                 <th className="p-3">Monto</th>
                 <th className="p-3">Estado</th>
                 <th className="p-3">Notas / Detalle</th>
+                <th className="p-3 text-right">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
@@ -302,12 +338,28 @@ export const ChecksView: React.FC = () => {
                         {c.status}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-400 max-w-xs truncate">{c.notes || '-'}</td>
+                    <td className="p-3 text-slate-400 max-w-xs">
+                      <div>{c.notes || '-'}</div>
+                      {c.lastModifiedBy && (
+                        <span className="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-semibold mt-1" title={`Editado el ${c.lastModifiedAt ? new Date(c.lastModifiedAt).toLocaleString() : ''}`}>
+                          <ShieldCheck className="w-2.5 h-2.5 text-amber-400" /> Editado por {c.lastModifiedBy}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-right">
+                      <button
+                        onClick={() => handleStartEdit(c)}
+                        className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
+                        title="Modificar cheque registrado"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="p-6 text-center text-slate-500 italic text-xs">
+                  <td colSpan={10} className="p-6 text-center text-slate-500 italic text-xs">
                     No se encontraron cheques que coincidan con los filtros aplicados.
                   </td>
                 </tr>
@@ -460,6 +512,122 @@ export const ChecksView: React.FC = () => {
                   className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
                 >
                   Guardar Cheque
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MODIFICAR CHEQUE */}
+      {showEditModal && editingCheck && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-amber-400 flex items-center gap-2">
+                <Edit2 className="w-4 h-4" /> Modificar Cheque ({role})
+              </h3>
+              <button onClick={() => setShowEditModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Tipo de Cheque</label>
+                  <select
+                    value={type}
+                    onChange={e => setType(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
+                  >
+                    <option value="PROPIO">Propio (Emitido)</option>
+                    <option value="TERCERO">De Tercero (Recibido)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">N° de Cheque</label>
+                  <input
+                    type="text"
+                    value={number}
+                    onChange={e => setNumber(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Banco</label>
+                  <input
+                    type="text"
+                    value={bank}
+                    onChange={e => setBank(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Monto ($)</label>
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={e => setAmount(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-400"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Proveedor / Destinatario</label>
+                  <input
+                    type="text"
+                    value={issuerOrRecipient}
+                    onChange={e => setIssuerOrRecipient(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Fecha Vencimiento</label>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={e => setDueDate(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Observaciones</label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                />
+              </div>
+
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>La modificación quedará registrada con el usuario <strong>{role}</strong>.</span>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
+                >
+                  Guardar Cambios ({role})
                 </button>
               </div>
             </form>

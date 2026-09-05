@@ -130,3 +130,28 @@ export interface ChatMessage {
   timestamp: string;
   dataSnippet?: any;
 }
+
+export interface InitialBalance {
+  id: string;
+  accountType: 'CAJA' | 'MERCADO_PAGO' | 'BANCO';
+  bankName?: string;
+  date: string;
+  amount: number;
+  notes?: string;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
+}
+
+export interface BankMovement {
+  id: string;
+  bankName: string;
+  date: string;
+  type: 'INGRESO' | 'EGRESO';
+  concept: string;
+  amount: number;
+  referenceNumber?: string;
+  notes?: string;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
+}
+
