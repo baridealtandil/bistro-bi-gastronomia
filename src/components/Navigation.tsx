@@ -51,7 +51,7 @@ export const COLAB_ALLOWED_TABS: TabType[] = [
 ];
 
 export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
-  const { isEmployeesUnlocked } = useGastronomy();
+  const { isEmployeesUnlocked, lockEmployees } = useGastronomy();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard BI', icon: LayoutDashboard },
@@ -91,10 +91,24 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
             >
               <Icon className={`w-5 h-5 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
               <span>{item.label}</span>
-              {item.isLocked && (
+              {item.id === 'empleados' && isEmployeesUnlocked && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    lockEmployees();
+                    if (activeTab === 'empleados') setActiveTab('dashboard');
+                  }}
+                  className="ml-auto flex items-center gap-1 text-[10px] bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 px-1.5 py-0.5 rounded-md font-bold transition-colors"
+                  title="Bloquear acceso al módulo de Empleados"
+                >
+                  <Lock className="w-3 h-3 text-rose-400" />
+                  <span>Cerrar</span>
+                </span>
+              )}
+              {item.id === 'empleados' && !isEmployeesUnlocked && (
                 <Lock className="ml-auto w-3.5 h-3.5 text-amber-400/80" />
               )}
-              {item.id === 'ia' && !item.isLocked && (
+              {item.id === 'ia' && (
                 <span className="ml-auto text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded-md font-bold">
                   IA
                 </span>

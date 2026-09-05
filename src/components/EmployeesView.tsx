@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
-import { Users, Plus, DollarSign, Calendar, ShieldCheck, Search, Filter, X, FileText, UserPlus } from 'lucide-react';
+import { Users, Plus, DollarSign, Calendar, ShieldCheck, Search, Filter, X, FileText, UserPlus, Lock } from 'lucide-react';
 import { DateRangePicker } from './DateRangePicker';
 
 export const EmployeesView: React.FC = () => {
-  const { employees, addEmployee, advances, addAdvance, totalLaborMonth, laborCostPercentage } = useGastronomy();
+  const { employees, addEmployee, advances, addAdvance, totalLaborMonth, laborCostPercentage, lockEmployees } = useGastronomy();
   const [showModal, setShowModal] = useState(false);
   const [showAddEmpModal, setShowAddEmpModal] = useState(false);
 
@@ -99,6 +99,15 @@ export const EmployeesView: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => lockEmployees()}
+            className="flex items-center gap-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all"
+            title="Bloquear acceso al módulo de Empleados"
+          >
+            <Lock className="w-4 h-4" />
+            Bloquear Módulo
+          </button>
+
           <button
             onClick={() => {
               setEmpName('');
