@@ -19,19 +19,17 @@ import { PinLoginModal } from '../components/PinLoginModal';
 
 function MainAppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
-  const { loginRole } = useGastronomy();
-  const isColabLogin = loginRole === 'colab';
+  const { role, loginRole } = useGastronomy();
+  const isColabMode = role === 'COLLABORATOR' || loginRole === 'colab';
 
-  // Si entró con el login "colab", no puede quedarse en una pestaña fuera de
-  // Ventas/Proveedores (por ejemplo si ya tenía otra pestaña activa de una
-  // sesión anterior, o mientras se lee la cookie recién montado el componente).
+  // Si está en modo "colaborador", no puede quedarse en una pestaña fuera de Ventas/Proveedores
   useEffect(() => {
-    if (isColabLogin && !COLAB_ALLOWED_TABS.includes(activeTab)) {
+    if (isColabMode && !COLAB_ALLOWED_TABS.includes(activeTab)) {
       setActiveTab('ventas');
     }
-  }, [isColabLogin, activeTab]);
+  }, [isColabMode, activeTab]);
 
-  const canShow = (tab: TabType) => !isColabLogin || COLAB_ALLOWED_TABS.includes(tab);
+  const canShow = (tab: TabType) => !isColabMode || COLAB_ALLOWED_TABS.includes(tab);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
