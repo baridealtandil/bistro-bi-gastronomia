@@ -1249,11 +1249,25 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     localStorage.removeItem('gastro_app_authed');
   };
 
+  const handleSetRole = (newRole: UserRole) => {
+    setRole(newRole);
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem('gastro_role', newRole); } catch (e) {}
+    }
+    if (newRole === 'COLLABORATOR') {
+      setLoginRole('colab');
+      document.cookie = 'login_role=colab; path=/; max-age=2592000; SameSite=Lax';
+    } else if (newRole === 'ADMIN') {
+      setLoginRole('admin');
+      document.cookie = 'login_role=admin; path=/; max-age=2592000; SameSite=Lax';
+    }
+  };
+
   return (
     <GastronomyContext.Provider
       value={{
         role,
-        setRole,
+        setRole: handleSetRole,
         loginRole,
         isAppAuthenticated,
         authenticateApp,
