@@ -23,7 +23,10 @@ export interface Supplier {
   phone: string;
   email: string;
   paymentTermDays: number;
+  initialBalanceDue?: number;
   balanceDue: number;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
 }
 
 export interface PurchaseInvoice {

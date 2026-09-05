@@ -25,6 +25,7 @@ interface GastronomyContextType {
   editSale: (id: string, saleData: Partial<Sale>) => void;
   suppliers: Supplier[];
   addSupplier: (supplier: Omit<Supplier, 'id' | 'balanceDue'>) => void;
+  editSupplier: (id: string, supplierData: Partial<Supplier>) => void;
   purchases: PurchaseInvoice[];
   addPurchase: (purchase: Omit<PurchaseInvoice, 'id'>) => void;
   editPurchase: (id: string, purchaseData: Partial<PurchaseInvoice>) => void;
@@ -301,9 +302,39 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const addSupplier = (supplierData: Omit<Supplier, 'id' | 'balanceDue'>) => {
-    const newSup: Supplier = { ...supplierData, id: `sup_${Date.now()}`, balanceDue: 0 };
+    const initBalance = supplierData.initialBalanceDue || 0;
+    const newSup: Supplier = {
+      ...supplierData,
+      id: `sup_${Date.now()}`,
+      initialBalanceDue: initBalance,
+      balanceDue: initBalance
+    };
     setSuppliers(prev => {
       const updated = [...prev, newSup];
+      try { localStorage.setItem('gastro_suppliers', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const editSupplier = (id: string, supplierData: Partial<Supplier>) => {
+    setSuppliers(prev => {
+      const updated = prev.map(s => {
+        if (s.id === id) {
+          const initDue = supplierData.initialBalanceDue ?? s.initialBalanceDue ?? 0;
+          const totalInvoices = purchases.filter(p => p.supplierId === id).reduce((acc, p) => acc + p.amount, 0);
+          const totalPayments = supplierPayments.filter(sp => sp.supplierId === id).reduce((acc, sp) => acc + sp.amount, 0);
+          const balanceDue = initDue + totalInvoices - totalPayments;
+          return {
+            ...s,
+            ...supplierData,
+            initialBalanceDue: initDue,
+            balanceDue,
+            lastModifiedBy: role,
+            lastModifiedAt: new Date().toISOString()
+          };
+        }
+        return s;
+      });
       try { localStorage.setItem('gastro_suppliers', JSON.stringify(updated)); } catch (e) {}
       return updated;
     });
@@ -636,6 +667,28 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     .filter(e => e.status === 'PENDIENTE')
     .reduce((acc, e) => acc + e.amount, 0);
 
+  // Calculos de disponibilidad en tiempo real para la IA
+  const initialCash = initialBalances.filter(ib => ib.accountType === 'CAJA').reduce((acc, ib) => acc + ib.amount, 0);
+  const salesCash = sales.filter(s => s.paymentMethod === 'EFECTIVO').reduce((acc, s) => acc + s.netAmount, 0);
+  const expensesCash = expenses.filter(e => {
+    const pm = (e.paymentMethod || '').toUpperCase();
+    return pm.includes('EFECTIVO') || pm.includes('CAJA CHICA');
+  }).reduce((acc, e) => acc + e.amount, 0);
+  const cajaMayorBalance = initialCash + salesCash - expensesCash;
+
+  const initialMP = initialBalances.filter(ib => ib.accountType === 'MERCADO_PAGO').reduce((acc, ib) => acc + ib.amount, 0);
+  const salesMP = sales.filter(s => s.paymentMethod === 'MERCADO_PAGO' || s.paymentMethod === 'DEBITO' || s.paymentMethod === 'CREDITO').reduce((acc, s) => acc + s.netAmount, 0);
+  const expensesMP = expenses.filter(e => {
+    const pm = (e.paymentMethod || '').toUpperCase();
+    return pm.includes('MERCADO PAGO') || pm.includes('TARJETA');
+  }).reduce((acc, e) => acc + e.amount, 0);
+  const mercadoPagoBalance = initialMP + salesMP - expensesMP;
+
+  const initialBancos = initialBalances.filter(ib => ib.accountType === 'BANCO').reduce((acc, ib) => acc + ib.amount, 0);
+  const bmIngresos = bankMovements.filter(bm => bm.type === 'INGRESO').reduce((acc, bm) => acc + bm.amount, 0);
+  const bmEgresos = bankMovements.filter(bm => bm.type === 'EGRESO').reduce((acc, bm) => acc + bm.amount, 0);
+  const bancosBalance = initialBancos + bmIngresos - bmEgresos;
+
   const sendChatMessage = async (text: string) => {
     const userMsg: ChatMessage = {
       id: `u_${Date.now()}`,
@@ -652,6 +705,9 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         body: JSON.stringify({
           prompt: text,
           contextData: {
+            cajaMayorBalance,
+            mercadoPagoBalance,
+            bancosBalance,
             totalSalesNetMonth,
             totalPurchasesMonth,
             totalLaborMonth,
@@ -670,7 +726,10 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             supplierPayments,
             expenses,
             checks,
-            employees
+            employees,
+            bankMovements,
+            initialBalances,
+            sales
           }
         })
       });
@@ -689,7 +748,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const fallbackMsg: ChatMessage = {
         id: `b_${Date.now()}`,
         sender: 'assistant',
-        text: `📊 **Resumen Financiero Automatizado**:\n\n- **Facturación Neta Total**: $${totalSalesNetMonth.toLocaleString('es-AR')}\n- **Deuda Total con Proveedores**: $${totalSupplierDebt.toLocaleString('es-AR')}\n- **Cubiertos Totales**: ${totalCoversMonth} (Ticket Promedio: $${Math.round(averageTicketPerCover).toLocaleString('es-AR')})\n- **Prime Cost Actual**: ${primeCostPercentage.toFixed(1)}%\n- **Cheques Pendientes**: $${pendingChecksAmount7Days.toLocaleString('es-AR')}\n- **Servicios por Pagar**: $${pendingServicesAmount.toLocaleString('es-AR')}`,
+        text: `📊 **Resumen Financiero Automatizado**:\n\n- 💵 **Efectivo Disponible**: $${cajaMayorBalance.toLocaleString('es-AR')}\n- 💳 **MercadoPago Disponible**: $${mercadoPagoBalance.toLocaleString('es-AR')}\n- 🏦 **Bancos Disponible**: $${bancosBalance.toLocaleString('es-AR')}\n- **Facturación Neta Total**: $${totalSalesNetMonth.toLocaleString('es-AR')}\n- **Deuda Total con Proveedores**: $${totalSupplierDebt.toLocaleString('es-AR')}`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setChatMessages(prev => [...prev, fallbackMsg]);
@@ -706,6 +765,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         editSale,
         suppliers,
         addSupplier,
+        editSupplier,
         purchases,
         addPurchase,
         editPurchase,

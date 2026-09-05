@@ -19,9 +19,11 @@ import {
   Calendar,
   Gift,
   ArrowRight,
-  X
+  X,
+  Edit2,
+  ShieldCheck
 } from 'lucide-react';
-import { SupplierPayment } from '../types/gastronomy';
+import { SupplierPayment, Supplier } from '../types/gastronomy';
 
 export const SuppliersView: React.FC = () => {
   const {
@@ -30,12 +32,16 @@ export const SuppliersView: React.FC = () => {
     supplierPayments,
     addPurchase,
     addSupplier,
+    editSupplier,
     addSupplierPayment,
-    totalSupplierDebt
+    totalSupplierDebt,
+    role
   } = useGastronomy();
 
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [showEditSupplierModal, setShowEditSupplierModal] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isScanningOcr, setIsScanningOcr] = useState(false);
 
@@ -64,6 +70,33 @@ export const SuppliersView: React.FC = () => {
   const [supCuit, setSupCuit] = useState('');
   const [supCategory, setSupCategory] = useState('');
   const [supPhone, setSupPhone] = useState('');
+  const [supInitialBalanceDue, setSupInitialBalanceDue] = useState('');
+
+  const handleStartEditSupplier = (sup: Supplier) => {
+    setEditingSupplier(sup);
+    setSupName(sup.name);
+    setSupCuit(sup.cuit);
+    setSupCategory(sup.category);
+    setSupPhone(sup.phone);
+    setSupInitialBalanceDue((sup.initialBalanceDue || 0).toString());
+    setShowEditSupplierModal(true);
+  };
+
+  const handleSaveEditSupplier = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSupplier || !supName) return;
+
+    editSupplier(editingSupplier.id, {
+      name: supName,
+      cuit: supCuit,
+      category: supCategory || 'VARIOS',
+      phone: supPhone,
+      initialBalanceDue: parseFloat(supInitialBalanceDue || '0')
+    });
+
+    setShowEditSupplierModal(false);
+    setEditingSupplier(null);
+  };
 
   // Detección de coincidencia/duplicidad de proveedor
   const normalizedSupName = supName.trim().toLowerCase();
@@ -200,13 +233,15 @@ export const SuppliersView: React.FC = () => {
       category: supCategory || 'Varios & Gastos Generales',
       phone: supPhone || '11-0000-0000',
       email: '',
-      paymentTermDays: 15
+      paymentTermDays: 15,
+      initialBalanceDue: parseFloat(supInitialBalanceDue || '0')
     });
 
     setSupName('');
     setSupCuit('');
     setSupCategory('');
     setSupPhone('');
+    setSupInitialBalanceDue('');
     setShowSupplierModal(false);
   };
 
@@ -412,7 +447,14 @@ export const SuppliersView: React.FC = () => {
               {sortedAndFilteredSuppliers.length > 0 ? (
                 sortedAndFilteredSuppliers.map(sup => (
                   <tr key={sup.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3 font-bold text-white text-sm">{sup.name}</td>
+                    <td className="p-3 font-bold text-white text-sm">
+                      <div>{sup.name}</div>
+                      {sup.lastModifiedBy && (
+                        <span className="text-[9px] bg-amber-500/10 text-amber-300 border border-amber-500/20 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-semibold mt-0.5" title={`Editado el ${sup.lastModifiedAt ? new Date(sup.lastModifiedAt).toLocaleString() : ''}`}>
+                          <ShieldCheck className="w-2.5 h-2.5 text-amber-400" /> Editado por {sup.lastModifiedBy}
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3">
                       <span className="bg-slate-800 text-amber-400 font-bold px-2 py-0.5 rounded text-[10px] border border-slate-700">
                         {sup.category}
@@ -421,9 +463,21 @@ export const SuppliersView: React.FC = () => {
                     <td className="p-3 text-slate-400">{sup.paymentTermDays} días</td>
                     <td className="p-3 font-black text-rose-400 text-sm">
                       ${sup.balanceDue.toLocaleString('es-AR')}
+                      {(sup.initialBalanceDue || 0) > 0 && (
+                        <span className="block text-[9px] text-slate-500 font-normal">
+                          (Inicial: ${(sup.initialBalanceDue || 0).toLocaleString('es-AR')})
+                        </span>
+                      )}
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleStartEditSupplier(sup)}
+                          className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-all"
+                          title="Editar datos del proveedor / saldo inicial"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                           onClick={() => {
                             setPurchaseSupplierName(sup.name);
@@ -432,7 +486,7 @@ export const SuppliersView: React.FC = () => {
                           }}
                           className="bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 px-2.5 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shrink-0"
                         >
-                          <Plus className="w-3 h-3" /> Agregar Factura
+                          <Plus className="w-3 h-3" /> Factura
                         </button>
                         <button
                           onClick={() => {
@@ -442,7 +496,7 @@ export const SuppliersView: React.FC = () => {
                           }}
                           className="bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 px-2.5 py-1 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1 shrink-0"
                         >
-                          <CreditCard className="w-3 h-3" /> Registrar Pago
+                          <CreditCard className="w-3 h-3" /> Pago
                         </button>
                       </div>
                     </td>
@@ -721,15 +775,27 @@ export const SuppliersView: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs text-slate-400 block mb-1">Teléfono / Celular de Contacto</label>
-                <input
-                  type="text"
-                  placeholder="11-4567-8901"
-                  value={supPhone}
-                  onChange={e => setSupPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Teléfono / Celular</label>
+                  <input
+                    type="text"
+                    placeholder="11-4567-8901"
+                    value={supPhone}
+                    onChange={e => setSupPhone(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-amber-300 font-semibold block mb-1">Saldo Inicial Adeudado ($)</label>
+                  <input
+                    type="number"
+                    placeholder="Ej. 150000"
+                    value={supInitialBalanceDue}
+                    onChange={e => setSupInitialBalanceDue(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-400"
+                  />
+                </div>
               </div>
 
               <div className="pt-3 flex items-center justify-end space-x-2">
@@ -936,6 +1002,99 @@ export const SuppliersView: React.FC = () => {
                   className="px-4 py-2 bg-emerald-600 text-white font-bold rounded-xl text-xs shadow-lg"
                 >
                   Confirmar Registro
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL MODIFICAR PROVEEDOR & SALDO INICIAL */}
+      {showEditSupplierModal && editingSupplier && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-amber-400 flex items-center gap-2">
+                <Edit2 className="w-4 h-4" /> Modificar Proveedor & Saldo Inicial ({role})
+              </h3>
+              <button onClick={() => setShowEditSupplierModal(false)} className="text-slate-400 hover:text-white font-bold text-lg">×</button>
+            </div>
+
+            <form onSubmit={handleSaveEditSupplier} className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Nombre Comercial / Razón Social</label>
+                <input
+                  type="text"
+                  value={supName}
+                  onChange={e => setSupName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none font-bold"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">CUIT</label>
+                  <input
+                    type="text"
+                    value={supCuit}
+                    onChange={e => setSupCuit(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-mono"
+                  />
+                </div>
+                <div>
+                  <SearchableCombobox
+                    label="Rubro / Categoría"
+                    value={supCategory}
+                    onChange={setSupCategory}
+                    options={allCategories}
+                    placeholder="Buscar o escribir rubro..."
+                    allowCustom={true}
+                    required={true}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400 block mb-1">Teléfono / Celular</label>
+                  <input
+                    type="text"
+                    value={supPhone}
+                    onChange={e => setSupPhone(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-amber-300 font-semibold block mb-1">Saldo Inicial Adeudado ($)</label>
+                  <input
+                    type="number"
+                    placeholder="Ej. 150000"
+                    value={supInitialBalanceDue}
+                    onChange={e => setSupInitialBalanceDue(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold text-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>La modificación se registrará bajo el usuario <strong>{role}</strong>.</span>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditSupplierModal(false)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs shadow-lg"
+                >
+                  Guardar Cambios ({role})
                 </button>
               </div>
             </form>
