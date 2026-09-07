@@ -210,14 +210,14 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     try {
-      if (!localStorage.getItem('gastro_reset_datos_clean_v4')) {
+      if (!localStorage.getItem('gastro_reset_datos_accurate_v5')) {
         [
           'gastro_sales', 'gastro_suppliers', 'gastro_purchases',
           'gastro_supplier_payments', 'gastro_expenses', 'gastro_checks',
           'gastro_employees', 'gastro_advances', 'gastro_initial_balances',
           'gastro_bank_movements', 'gastro_cash_movements',
         ].forEach(key => localStorage.removeItem(key));
-        localStorage.setItem('gastro_reset_datos_clean_v4', 'true');
+        localStorage.setItem('gastro_reset_datos_accurate_v5', 'true');
       }
 
       const savedSales = localStorage.getItem('gastro_sales');
