@@ -23,6 +23,8 @@ import {
   PartnerWithdrawalCashLine
 } from '../types/gastronomy';
 
+import importedData from '../data/imported_suppliers_data.json';
+
 // Interpreta un medio de pago en texto libre (Ventas/Gastos) y dice a qué
 // tipo de cuenta afecta. Única función de este tipo en todo el proyecto —
 // si en algún módulo hace falta esta lógica, se importa de acá, no se reescribe.
@@ -124,11 +126,11 @@ interface GastronomyContextType {
 }
 
 const INITIAL_SALES: Sale[] = [];
-const INITIAL_SUPPLIERS: Supplier[] = [];
-const INITIAL_PURCHASES: PurchaseInvoice[] = [];
-const INITIAL_SUPPLIER_PAYMENTS: SupplierPayment[] = [];
+const INITIAL_SUPPLIERS: Supplier[] = importedData.suppliers as Supplier[];
+const INITIAL_PURCHASES: PurchaseInvoice[] = importedData.purchases as PurchaseInvoice[];
+const INITIAL_SUPPLIER_PAYMENTS: SupplierPayment[] = importedData.payments as SupplierPayment[];
 const INITIAL_EXPENSES: Expense[] = [];
-const INITIAL_CHECKS: Check[] = [];
+const INITIAL_CHECKS: Check[] = importedData.checks as Check[];
 const INITIAL_EMPLOYEES: Employee[] = [];
 const INITIAL_ADVANCES: Advance[] = [];
 const INITIAL_DISHES: Dish[] = [];
@@ -208,14 +210,14 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   useEffect(() => {
     try {
-      if (!localStorage.getItem('gastro_reset_datos_demo_v1')) {
+      if (!localStorage.getItem('gastro_reset_datos_excel_v3')) {
         [
           'gastro_sales', 'gastro_suppliers', 'gastro_purchases',
           'gastro_supplier_payments', 'gastro_expenses', 'gastro_checks',
           'gastro_employees', 'gastro_advances', 'gastro_initial_balances',
           'gastro_bank_movements', 'gastro_cash_movements',
         ].forEach(key => localStorage.removeItem(key));
-        localStorage.setItem('gastro_reset_datos_demo_v1', 'true');
+        localStorage.setItem('gastro_reset_datos_excel_v3', 'true');
       }
 
       const savedSales = localStorage.getItem('gastro_sales');
