@@ -78,6 +78,31 @@ export const SalesView: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (channel === 'PEDIDOS_YA') {
+      const gross = parseFloat(grossAmount);
+      if (isNaN(gross) || gross <= 0) return;
+
+      const totalCoversNum = parseInt(covers || '0', 10);
+      const totalCommissionNum = parseFloat(commissionAmount || '0');
+
+      addSale({
+        date,
+        shift,
+        covers: totalCoversNum,
+        channel: 'PEDIDOS_YA',
+        paymentMethod: 'TRANSFERENCIA',
+        grossAmount: gross,
+        commissionAmount: totalCommissionNum,
+        notes: notes.trim()
+      });
+
+      setGrossAmount('');
+      setCommissionAmount('0');
+      setNotes('');
+      setShowModal(false);
+      return;
+    }
+
     // Obtener los medios de pago con monto ingresado > 0
     const activeEntries = (Object.entries(paymentAmounts) as [Sale['paymentMethod'], string][]).filter(
       ([_, amtStr]) => {
@@ -121,6 +146,7 @@ export const SalesView: React.FC = () => {
       CREDITO: '',
       TRANSFERENCIA: ''
     });
+    setGrossAmount('');
     setCommissionAmount('0');
     setNotes('');
     setShowModal(false);
@@ -131,7 +157,13 @@ export const SalesView: React.FC = () => {
     if (startDate && s.date < startDate) return false;
     if (endDate && s.date > endDate) return false;
     if (filterShift !== 'TODOS' && s.shift !== filterShift) return false;
-    if (filterChannel !== 'TODOS' && s.channel !== filterChannel) return false;
+    if (filterChannel !== 'TODOS') {
+      if (filterChannel === 'PEDIDOS_YA') {
+        if (s.channel !== 'PEDIDOS_YA' && s.channel !== 'RAPPI' && (s.channel as string) !== 'RAPPI_PEDIDOSYA') return false;
+      } else if (s.channel !== filterChannel) {
+        return false;
+      }
+    }
     if (filterPaymentMethod !== 'TODOS' && s.paymentMethod !== filterPaymentMethod) return false;
     return true;
   });
@@ -293,9 +325,9 @@ export const SalesView: React.FC = () => {
             >
               <option value="TODOS">Todos los Canales</option>
               <option value="SALON">Salón</option>
-              <option value="DELIVERY">Delivery Propio</option>
-              <option value="TAKE_AWAY">Take Away / Mostrador</option>
-              <option value="RAPPI_PEDIDOSYA">Rappi / PedidosYa</option>
+              <option value="DELIVERY_PROPIO">Delivery Propio</option>
+              <option value="TAKEAWAY">Take Away / Mostrador</option>
+              <option value="PEDIDOS_YA">PedidosYa</option>
             </select>
           </div>
 
@@ -498,58 +530,84 @@ export const SalesView: React.FC = () => {
                     <option value="SALON">Salón</option>
                     <option value="TAKEAWAY">Takeaway</option>
                     <option value="DELIVERY_PROPIO">Delivery Propio</option>
-                    <option value="RAPPI">Rappi</option>
                     <option value="PEDIDOS_YA">PedidosYa</option>
                   </select>
                 </div>
               </div>
 
-              {/* Medios de Pago e Importes (Un renglón para cada medio de pago) */}
-              <div className="space-y-2 bg-slate-950/80 p-3.5 border border-slate-800 rounded-2xl">
-                <div className="flex items-center justify-between pb-1">
-                  <label className="text-xs font-bold text-amber-400">
-                    Medios de Pago e Importes ($)
-                  </label>
-                  <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg">
-                    Total Bruto: ${totalGrossFromAmounts.toLocaleString('es-AR')}
-                  </span>
+              {channel === 'PEDIDOS_YA' ? (
+                <div className="space-y-3 bg-slate-950/80 p-3.5 border border-amber-500/30 rounded-2xl">
+                  <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-300 flex items-start gap-2 font-medium">
+                    <Landmark className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <span>
+                      Las ventas de <strong>PedidosYa</strong> se acreditan directamente en la cuenta bancaria (<strong>Transferencia</strong>).
+                    </span>
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1 font-semibold">Monto Bruto PedidosYa ($)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="Ej. 45000"
+                        value={grossAmount}
+                        onChange={e => setGrossAmount(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-xl py-2 pl-7 pr-3 text-xs text-white font-bold outline-none transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                /* Medios de Pago e Importes (Un renglón para cada medio de pago) */
+                <div className="space-y-2 bg-slate-950/80 p-3.5 border border-slate-800 rounded-2xl">
+                  <div className="flex items-center justify-between pb-1">
+                    <label className="text-xs font-bold text-amber-400">
+                      Medios de Pago e Importes ($)
+                    </label>
+                    <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg">
+                      Total Bruto: ${totalGrossFromAmounts.toLocaleString('es-AR')}
+                    </span>
+                  </div>
 
-                <div className="space-y-2">
-                  {[
-                    { key: 'EFECTIVO', label: 'Efectivo', icon: Wallet, color: 'text-emerald-400' },
-                    { key: 'MERCADO_PAGO', label: 'Mercado Pago', icon: CreditCard, color: 'text-sky-400' },
-                    { key: 'DEBITO', label: 'Débito', icon: CreditCard, color: 'text-blue-400' },
-                    { key: 'CREDITO', label: 'Crédito', icon: CreditCard, color: 'text-indigo-400' },
-                    { key: 'TRANSFERENCIA', label: 'Transferencia', icon: Landmark, color: 'text-purple-400' }
-                  ].map(pm => {
-                    const PmIcon = pm.icon;
-                    return (
-                      <div key={pm.key} className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-xl">
-                        <div className="flex items-center gap-2 w-36 shrink-0">
-                          <PmIcon className={`w-4 h-4 ${pm.color}`} />
-                          <span className="text-xs font-medium text-slate-200">{pm.label}</span>
+                  <div className="space-y-2">
+                    {[
+                      { key: 'EFECTIVO', label: 'Efectivo', icon: Wallet, color: 'text-emerald-400' },
+                      { key: 'MERCADO_PAGO', label: 'Mercado Pago', icon: CreditCard, color: 'text-sky-400' },
+                      { key: 'DEBITO', label: 'Débito', icon: CreditCard, color: 'text-blue-400' },
+                      { key: 'CREDITO', label: 'Crédito', icon: CreditCard, color: 'text-indigo-400' },
+                      { key: 'TRANSFERENCIA', label: 'Transferencia', icon: Landmark, color: 'text-purple-400' }
+                    ].map(pm => {
+                      const PmIcon = pm.icon;
+                      return (
+                        <div key={pm.key} className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-xl">
+                          <div className="flex items-center gap-2 w-36 shrink-0">
+                            <PmIcon className={`w-4 h-4 ${pm.color}`} />
+                            <span className="text-xs font-medium text-slate-200">{pm.label}</span>
+                          </div>
+                          <div className="flex-1 relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">$</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              placeholder="0"
+                              value={paymentAmounts[pm.key as Sale['paymentMethod']]}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setPaymentAmounts(prev => ({ ...prev, [pm.key]: val }));
+                              }}
+                              className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg py-1.5 pl-7 pr-3 text-xs text-white font-bold outline-none transition-all"
+                            />
+                          </div>
                         </div>
-                        <div className="flex-1 relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">$</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            placeholder="0"
-                            value={paymentAmounts[pm.key as Sale['paymentMethod']]}
-                            onChange={e => {
-                              const val = e.target.value;
-                              setPaymentAmounts(prev => ({ ...prev, [pm.key]: val }));
-                            }}
-                            className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg py-1.5 pl-7 pr-3 text-xs text-white font-bold outline-none transition-all"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Comisión Plataforma ($)</label>
@@ -650,7 +708,6 @@ export const SalesView: React.FC = () => {
                     <option value="SALON">Salón</option>
                     <option value="DELIVERY_PROPIO">Delivery Propio</option>
                     <option value="TAKEAWAY">Take Away</option>
-                    <option value="RAPPI">Rappi</option>
                     <option value="PEDIDOS_YA">PedidosYa</option>
                   </select>
                 </div>
