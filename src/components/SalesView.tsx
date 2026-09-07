@@ -29,6 +29,20 @@ export const SalesView: React.FC = () => {
   const [commissionAmount, setCommissionAmount] = useState<string>('0');
   const [notes, setNotes] = useState<string>('');
 
+  // Renglones de importes por Medio de Pago (Nueva Venta)
+  const [paymentAmounts, setPaymentAmounts] = useState<Record<Sale['paymentMethod'], string>>({
+    EFECTIVO: '',
+    MERCADO_PAGO: '',
+    DEBITO: '',
+    CREDITO: '',
+    TRANSFERENCIA: ''
+  });
+
+  const totalGrossFromAmounts = Object.values(paymentAmounts).reduce((acc, val) => {
+    const num = parseFloat(val);
+    return acc + (isNaN(num) || num < 0 ? 0 : num);
+  }, 0);
+
   const handleStartEdit = (s: Sale) => {
     setEditingSale(s);
     setDate(s.date);
@@ -63,20 +77,50 @@ export const SalesView: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!grossAmount || parseFloat(grossAmount) <= 0) return;
 
-    addSale({
-      date,
-      shift,
-      covers: parseInt(covers || '0', 10),
-      channel,
-      paymentMethod,
-      grossAmount: parseFloat(grossAmount),
-      commissionAmount: parseFloat(commissionAmount || '0'),
-      notes
+    // Obtener los medios de pago con monto ingresado > 0
+    const activeEntries = (Object.entries(paymentAmounts) as [Sale['paymentMethod'], string][]).filter(
+      ([_, amtStr]) => {
+        const val = parseFloat(amtStr);
+        return !isNaN(val) && val > 0;
+      }
+    );
+
+    if (activeEntries.length === 0) return;
+
+    const totalCoversNum = parseInt(covers || '0', 10);
+    const totalCommissionNum = parseFloat(commissionAmount || '0');
+
+    // Registrar una venta por cada medio de pago que tenga monto cargado
+    activeEntries.forEach(([pm, amtStr], index) => {
+      const pmGross = parseFloat(amtStr);
+      // Asignar los cubiertos al primer registro para no duplicar comensales en los totales
+      const pmCovers = index === 0 ? totalCoversNum : 0;
+      // Proporcional de comisión si aplica
+      const pmCommission = totalGrossFromAmounts > 0
+        ? (pmGross / totalGrossFromAmounts) * totalCommissionNum
+        : 0;
+
+      addSale({
+        date,
+        shift,
+        covers: pmCovers,
+        channel,
+        paymentMethod: pm,
+        grossAmount: pmGross,
+        commissionAmount: pmCommission,
+        notes: notes.trim()
+      });
     });
 
-    setGrossAmount('');
+    // Resetear formulario
+    setPaymentAmounts({
+      EFECTIVO: '',
+      MERCADO_PAGO: '',
+      DEBITO: '',
+      CREDITO: '',
+      TRANSFERENCIA: ''
+    });
     setCommissionAmount('0');
     setNotes('');
     setShowModal(false);
@@ -460,31 +504,50 @@ export const SalesView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Medio de Pago</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={e => setPaymentMethod(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none"
-                  >
-                    <option value="EFECTIVO">Efectivo</option>
-                    <option value="MERCADO_PAGO">Mercado Pago</option>
-                    <option value="DEBITO">Débito</option>
-                    <option value="CREDITO">Crédito</option>
-                    <option value="TRANSFERENCIA">Transferencia</option>
-                  </select>
+              {/* Medios de Pago e Importes (Un renglón para cada medio de pago) */}
+              <div className="space-y-2 bg-slate-950/80 p-3.5 border border-slate-800 rounded-2xl">
+                <div className="flex items-center justify-between pb-1">
+                  <label className="text-xs font-bold text-amber-400">
+                    Medios de Pago e Importes ($)
+                  </label>
+                  <span className="text-[11px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-lg">
+                    Total Bruto: ${totalGrossFromAmounts.toLocaleString('es-AR')}
+                  </span>
                 </div>
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1">Monto Bruto ($)</label>
-                  <input
-                    type="number"
-                    placeholder="Ej. 450000"
-                    value={grossAmount}
-                    onChange={e => setGrossAmount(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:border-amber-500 outline-none font-bold"
-                    required
-                  />
+
+                <div className="space-y-2">
+                  {[
+                    { key: 'EFECTIVO', label: 'Efectivo', icon: Wallet, color: 'text-emerald-400' },
+                    { key: 'MERCADO_PAGO', label: 'Mercado Pago', icon: CreditCard, color: 'text-sky-400' },
+                    { key: 'DEBITO', label: 'Débito', icon: CreditCard, color: 'text-blue-400' },
+                    { key: 'CREDITO', label: 'Crédito', icon: CreditCard, color: 'text-indigo-400' },
+                    { key: 'TRANSFERENCIA', label: 'Transferencia', icon: Landmark, color: 'text-purple-400' }
+                  ].map(pm => {
+                    const PmIcon = pm.icon;
+                    return (
+                      <div key={pm.key} className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-xl">
+                        <div className="flex items-center gap-2 w-36 shrink-0">
+                          <PmIcon className={`w-4 h-4 ${pm.color}`} />
+                          <span className="text-xs font-medium text-slate-200">{pm.label}</span>
+                        </div>
+                        <div className="flex-1 relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-bold">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="0"
+                            value={paymentAmounts[pm.key as Sale['paymentMethod']]}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setPaymentAmounts(prev => ({ ...prev, [pm.key]: val }));
+                            }}
+                            className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-lg py-1.5 pl-7 pr-3 text-xs text-white font-bold outline-none transition-all"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
