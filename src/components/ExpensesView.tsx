@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useGastronomy, classifyPaymentMethod } from '../context/GastronomyContext';
-import { Plus, Search, CheckCircle2, DollarSign, X, CreditCard, Edit2, ShieldCheck } from 'lucide-react';
+import { useGastronomy, classifyPaymentMethod, classifyExpenseGroup } from '../context/GastronomyContext';
+import { Plus, Search, CheckCircle2, DollarSign, X, CreditCard, Edit2, ShieldCheck, Building2, Landmark, Package } from 'lucide-react';
 import { SearchableCombobox } from './SearchableCombobox';
 import { DateRangePicker } from './DateRangePicker';
 import { Expense } from '../types/gastronomy';
@@ -24,7 +24,10 @@ const COMMON_EXPENSE_PROVIDERS = [
   'Edesur',
   'Alquiler Salón Comercial',
   'Fudo POS System',
-  'Tasas Municipalidad'
+  'Tasas Municipalidad',
+  'AFIP / ARBA - Cargas Sociales / Form 931',
+  'ARBA / IIBB Impuestos Provincial',
+  'Impuestos Bancarios y Comisiones'
 ];
 
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -36,18 +39,19 @@ const DEFAULT_EXPENSE_CATEGORIES = [
   'KIOSCO',
   'CAJA CHICA',
   'VARIOS & CAJA',
-  'LUZ',
-  'GAS',
-  'AGUA',
+  'LUZ / GAS / AGUA',
   'ALQUILER',
-  'INTERNET',
-  'SOFTWARE',
-  'MANTENIMIENTO',
-  'MARKETING',
-  'IMPREVISTOS',
+  'INTERNET / COMUNICACIONES',
+  'SOFTWARE / FUDO POS',
+  'MANTENIMIENTO & REPARACIONES',
+  'MARKETING & PUBLICIDAD',
   'SEGUROS',
   'TASAS / MUNICIPAL',
-  'HONORARIOS'
+  'AFIP / ARBA / IMPUESTOS',
+  'CARGAS SOCIALES / FORM 931',
+  'IMPUESTO IIBB',
+  'IMPUESTOS BANCARIOS / DÉBITOS',
+  'HONORARIOS PROFESIONALES'
 ];
 
 const DEFAULT_PAYMENT_METHODS = [
@@ -69,6 +73,7 @@ export const ExpensesView: React.FC = () => {
 
   // Buscador y Filtros de la Tabla
   const [searchProvider, setSearchProvider] = useState('');
+  const [filterGroup, setFilterGroup] = useState<string>('ALL');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('ALL');
   const [startDate, setStartDate] = useState('');
@@ -77,10 +82,17 @@ export const ExpensesView: React.FC = () => {
   // Form State Modal Registrar Pago
   const [providerName, setProviderName] = useState('');
   const [category, setCategory] = useState('SUPERMERCADO');
+  const [expenseGroup, setExpenseGroup] = useState<'FUNCIONAMIENTO' | 'IMPUESTOS' | 'VARIOS'>('VARIOS');
   const [paymentMethod, setPaymentMethod] = useState('EFECTIVO (Caja Chica)');
   const [bankName, setBankName] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Handler para cambios de categoría auto-clasificando el grupo
+  const handleCategoryChange = (newCat: string) => {
+    setCategory(newCat);
+    setExpenseGroup(classifyExpenseGroup(newCat));
+  };
 
   // Lista dinámica de categorías
   const allCategories = Array.from(new Set([
@@ -99,9 +111,13 @@ export const ExpensesView: React.FC = () => {
     if (!providerName || !amount || parseFloat(amount) <= 0) return;
 
     const finalPaymentMethod = paymentMethod.trim() || 'EFECTIVO (Caja Chica)';
+    const finalCategory = category.trim().toUpperCase() || 'VARIOS & CAJA';
+    const finalGroup = expenseGroup || classifyExpenseGroup(finalCategory);
+
     addExpense({
       date: paymentDate || new Date().toISOString().split('T')[0],
-      category: category.trim().toUpperCase() || 'VARIOS & CAJA',
+      category: finalCategory,
+      expenseGroup: finalGroup,
       description: providerName.trim(),
       amount: parseFloat(amount),
       paymentMethod: finalPaymentMethod,
@@ -120,6 +136,7 @@ export const ExpensesView: React.FC = () => {
     setEditingExpense(exp);
     setProviderName(exp.description);
     setCategory(exp.category);
+    setExpenseGroup(exp.expenseGroup || classifyExpenseGroup(exp.category));
     setPaymentMethod(exp.paymentMethod || 'EFECTIVO (Caja Chica)');
     setBankName(exp.bankName || '');
     setAmount(exp.amount.toString());
@@ -132,9 +149,13 @@ export const ExpensesView: React.FC = () => {
     if (!editingExpense || !providerName || !amount || parseFloat(amount) <= 0) return;
 
     const finalPaymentMethod = paymentMethod.trim() || 'EFECTIVO (Caja Chica)';
+    const finalCategory = category.trim().toUpperCase() || 'VARIOS & CAJA';
+    const finalGroup = expenseGroup || classifyExpenseGroup(finalCategory);
+
     editExpense(editingExpense.id, {
       description: providerName.trim(),
-      category: category.trim().toUpperCase() || 'VARIOS & CAJA',
+      category: finalCategory,
+      expenseGroup: finalGroup,
       paymentMethod: finalPaymentMethod,
       bankName: classifyPaymentMethod(finalPaymentMethod) === 'BANCO' ? (bankName.trim() || undefined) : undefined,
       amount: parseFloat(amount),
@@ -152,6 +173,9 @@ export const ExpensesView: React.FC = () => {
       e.category.toLowerCase().includes(searchProvider.toLowerCase()) ||
       (e.paymentMethod && e.paymentMethod.toLowerCase().includes(searchProvider.toLowerCase()));
 
+    const group = e.expenseGroup || classifyExpenseGroup(e.category);
+    const matchesGroup = filterGroup === 'ALL' || group === filterGroup;
+
     const matchesCategory = filterCategory === 'ALL' || e.category === filterCategory;
     const matchesMethod = filterPaymentMethod === 'ALL' || e.paymentMethod === filterPaymentMethod;
 
@@ -159,7 +183,7 @@ export const ExpensesView: React.FC = () => {
     const matchesStartDate = !startDate || expDate >= startDate;
     const matchesEndDate = !endDate || expDate <= endDate;
 
-    return matchesProvider && matchesCategory && matchesMethod && matchesStartDate && matchesEndDate;
+    return matchesProvider && matchesGroup && matchesCategory && matchesMethod && matchesStartDate && matchesEndDate;
   });
 
   const totalFilteredAmount = filteredExpenses.reduce((acc, e) => acc + e.amount, 0);
@@ -170,16 +194,17 @@ export const ExpensesView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-5 rounded-2xl">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            Registro de Pagos y Salidas de Dinero
+            Registro de Pagos, Funcionamiento e Impuestos
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Módulo general de pagos (Efectivo, MercadoPago, Banco, Cheques, Depósitos para Cubrir Cheques, etc.).
+            Módulo general de egresos (Efectivo, Banco, Cheques, Gastos de Funcionamiento, Impuestos, etc.).
           </p>
         </div>
         <button
           onClick={() => {
             setProviderName('');
             setCategory('SUPERMERCADO');
+            setExpenseGroup('VARIOS');
             setPaymentMethod('EFECTIVO (Caja Chica)');
             setAmount('');
             setPaymentDate(new Date().toISOString().split('T')[0]);
@@ -211,7 +236,7 @@ export const ExpensesView: React.FC = () => {
           </div>
 
           {/* Toolbar de Filtros Integrados */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 pt-1">
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
               <input
@@ -232,6 +257,19 @@ export const ExpensesView: React.FC = () => {
                   setEndDate(end);
                 }}
               />
+            </div>
+
+            <div>
+              <select
+                value={filterGroup}
+                onChange={e => setFilterGroup(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-amber-300 font-semibold focus:border-amber-500/50 outline-none"
+              >
+                <option value="ALL">Todos los Grupos BI</option>
+                <option value="FUNCIONAMIENTO">⚙️ Gastos Funcionamiento</option>
+                <option value="IMPUESTOS">🏛️ Impuestos & Tasas</option>
+                <option value="VARIOS">📦 Varios & Retiros</option>
+              </select>
             </div>
 
             <div>
@@ -261,13 +299,14 @@ export const ExpensesView: React.FC = () => {
             </div>
           </div>
 
-          {(searchProvider || startDate || endDate || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL') && (
+          {(searchProvider || startDate || endDate || filterGroup !== 'ALL' || filterCategory !== 'ALL' || filterPaymentMethod !== 'ALL') && (
             <div className="flex items-center justify-end pt-1">
               <button
                 onClick={() => {
                   setSearchProvider('');
                   setStartDate('');
                   setEndDate('');
+                  setFilterGroup('ALL');
                   setFilterCategory('ALL');
                   setFilterPaymentMethod('ALL');
                 }}
@@ -286,6 +325,7 @@ export const ExpensesView: React.FC = () => {
                 <th className="py-3 px-4">Fecha</th>
                 <th className="py-3 px-4">Proveedor / Concepto</th>
                 <th className="py-3 px-4">Medio de Pago</th>
+                <th className="py-3 px-4">Grupo BI</th>
                 <th className="py-3 px-4">Categoría</th>
                 <th className="py-3 px-4 text-right">Monto</th>
                 <th className="py-3 px-4 text-center">Estado</th>
@@ -294,50 +334,70 @@ export const ExpensesView: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {filteredExpenses.length > 0 ? (
-                filteredExpenses.map(e => (
-                  <tr key={e.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-3 px-4 font-semibold text-slate-300 whitespace-nowrap">{e.date || e.dueDate}</td>
-                    <td className="py-3 px-4 font-semibold text-slate-100">{e.description}</td>
-                    <td className="py-3 px-4 font-medium whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
-                        <CreditCard className="w-3 h-3 text-emerald-400" />
-                        {e.paymentMethod || 'EFECTIVO (Caja Chica)'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="bg-slate-800 text-slate-300 font-medium px-2 py-0.5 rounded text-[10px] border border-slate-700">
-                        {e.category}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-slate-100 text-sm whitespace-nowrap">
-                      ${e.amount.toLocaleString('es-AR')}
-                    </td>
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1.5">
-                        <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold inline-flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" /> PAGADO
+                filteredExpenses.map(e => {
+                  const grp = e.expenseGroup || classifyExpenseGroup(e.category);
+                  return (
+                    <tr key={e.id} className="hover:bg-slate-800/30 transition-colors">
+                      <td className="py-3 px-4 font-semibold text-slate-300 whitespace-nowrap">{e.date || e.dueDate}</td>
+                      <td className="py-3 px-4 font-semibold text-slate-100">{e.description}</td>
+                      <td className="py-3 px-4 font-medium whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold">
+                          <CreditCard className="w-3 h-3 text-emerald-400" />
+                          {e.paymentMethod || 'EFECTIVO (Caja Chica)'}
                         </span>
-                        {e.lastModifiedBy && (
-                          <span title={`Editado por ${e.lastModifiedBy} el ${e.lastModifiedAt ? new Date(e.lastModifiedAt).toLocaleString() : ''}`} className="inline-flex shrink-0">
-                            <ShieldCheck className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400 cursor-help" />
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {grp === 'FUNCIONAMIENTO' && (
+                          <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1">
+                            <Building2 className="w-3 h-3" /> Funcionamiento
                           </span>
                         )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <button
-                        onClick={() => handleStartEdit(e)}
-                        className="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
-                        title="Editar pago"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                        {grp === 'IMPUESTOS' && (
+                          <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1">
+                            <Landmark className="w-3 h-3" /> Impuestos
+                          </span>
+                        )}
+                        {grp === 'VARIOS' && (
+                          <span className="bg-slate-800 text-slate-400 border border-slate-700 px-2 py-0.5 rounded text-[10px] font-medium inline-flex items-center gap-1">
+                            <Package className="w-3 h-3" /> Varios
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="bg-slate-800 text-slate-300 font-medium px-2 py-0.5 rounded text-[10px] border border-slate-700">
+                          {e.category}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-100 text-sm whitespace-nowrap">
+                        ${e.amount.toLocaleString('es-AR')}
+                      </td>
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-semibold inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" /> PAGADO
+                          </span>
+                          {e.lastModifiedBy && (
+                            <span title={`Editado por ${e.lastModifiedBy} el ${e.lastModifiedAt ? new Date(e.lastModifiedAt).toLocaleString() : ''}`} className="inline-flex shrink-0">
+                              <ShieldCheck className="w-3.5 h-3.5 text-slate-400 hover:text-amber-400 cursor-help" />
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => handleStartEdit(e)}
+                          className="p-1 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded transition-colors"
+                          title="Editar pago"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-slate-500 italic text-xs">
+                  <td colSpan={8} className="p-6 text-center text-slate-500 italic text-xs">
                     No se encontraron pagos registrados con los filtros aplicados.
                   </td>
                 </tr>
@@ -405,12 +465,59 @@ export const ExpensesView: React.FC = () => {
                 <SearchableCombobox
                   label="Categoría / Rubro"
                   value={category}
-                  onChange={setCategory}
+                  onChange={handleCategoryChange}
                   options={allCategories}
                   placeholder="Escribir o seleccionar categoría..."
                   allowCustom={true}
                   required={true}
                 />
+              </div>
+
+              {/* Clasificación de Grupo BI */}
+              <div>
+                <label className="text-xs text-slate-400 block mb-1.5 font-medium">
+                  Grupo Indicador BI (para Tablero)
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpenseGroup('FUNCIONAMIENTO')}
+                    className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                      expenseGroup === 'FUNCIONAMIENTO'
+                        ? 'bg-sky-500/20 border-sky-500 text-sky-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4 text-sky-400" />
+                    <span>Funcionamiento</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExpenseGroup('IMPUESTOS')}
+                    className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                      expenseGroup === 'IMPUESTOS'
+                        ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Landmark className="w-4 h-4 text-purple-400" />
+                    <span>Impuestos</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExpenseGroup('VARIOS')}
+                    className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                      expenseGroup === 'VARIOS'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Package className="w-4 h-4 text-amber-400" />
+                    <span>Varios / Retiros</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -512,12 +619,59 @@ export const ExpensesView: React.FC = () => {
                 <SearchableCombobox
                   label="Categoría / Rubro"
                   value={category}
-                  onChange={setCategory}
+                  onChange={handleCategoryChange}
                   options={allCategories}
                   placeholder="Categoría..."
                   allowCustom={true}
                   required={true}
                 />
+              </div>
+
+              {/* Clasificación de Grupo BI */}
+              <div>
+                <label className="text-xs text-slate-400 block mb-1.5 font-medium">
+                  Grupo Indicador BI (para Tablero)
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExpenseGroup('FUNCIONAMIENTO')}
+                    className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                      expenseGroup === 'FUNCIONAMIENTO'
+                        ? 'bg-sky-500/20 border-sky-500 text-sky-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Building2 className="w-4 h-4 text-sky-400" />
+                    <span>Funcionamiento</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExpenseGroup('IMPUESTOS')}
+                    className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                      expenseGroup === 'IMPUESTOS'
+                        ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Landmark className="w-4 h-4 text-purple-400" />
+                    <span>Impuestos</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setExpenseGroup('VARIOS')}
+                    className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                      expenseGroup === 'VARIOS'
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    <Package className="w-4 h-4 text-amber-400" />
+                    <span>Varios / Retiros</span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
