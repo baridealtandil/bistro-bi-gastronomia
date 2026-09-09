@@ -8,6 +8,7 @@ import { DashboardView } from '../components/DashboardView';
 import { SalesView } from '../components/SalesView';
 import { SuppliersView } from '../components/SuppliersView';
 import { ExpensesView } from '../components/ExpensesView';
+import { BudgetView } from '../components/BudgetView';
 import { ChecksView } from '../components/ChecksView';
 import { BankAccountsView } from '../components/BankAccountsView';
 import { EmployeesView } from '../components/EmployeesView';
@@ -58,6 +59,7 @@ function MainAppContent() {
           {activeTab === 'ventas' && <SalesView />}
           {activeTab === 'compras' && <SuppliersView />}
           {activeTab === 'gastos' && <ExpensesView />}
+          {activeTab === 'presupuesto' && <BudgetView />}
           {activeTab === 'cheques' && <ChecksView />}
           {activeTab === 'bancos' && <BankAccountsView />}
           {activeTab === 'empleados' && (

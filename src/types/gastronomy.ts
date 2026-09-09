@@ -248,4 +248,23 @@ export interface PartnerWithdrawal {
   groupPartnerIds?: string[];
 }
 
+export interface BudgetItemTarget {
+  id: string;
+  group: 'PERSONAL' | 'COMPRAS' | 'FUNCIONAMIENTO' | 'IMPUESTOS' | 'VARIOS';
+  category?: string; // Opcional, para presupuestar una categoría específica como "ALQUILER" o "LUZ / GAS / AGUA"
+  targetAmount: number; // Monto objetivo presupuestado en $
+  targetPercentage?: number; // % objetivo sobre ventas brutas proyectadas
+  notes?: string;
+}
+
+export interface MonthlyBudget {
+  monthKey: string; // "YYYY-MM"
+  projectedSalesGross: number; // Facturación Bruta proyectada esperada
+  items: BudgetItemTarget[];
+  notes?: string;
+  lastModifiedBy?: UserRole;
+  lastModifiedAt?: string;
+}
+
+
 

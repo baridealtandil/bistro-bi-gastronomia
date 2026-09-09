@@ -14,7 +14,8 @@ import {
   Sparkles,
   Webhook,
   Handshake,
-  Lock
+  Lock,
+  Target
 } from 'lucide-react';
 import { useGastronomy } from '../context/GastronomyContext';
 
@@ -23,6 +24,7 @@ export type TabType =
   | 'ventas'
   | 'compras'
   | 'gastos'
+  | 'presupuesto'
   | 'cheques'
   | 'bancos'
   | 'empleados'
@@ -41,6 +43,7 @@ export const COLAB_ALLOWED_TABS: TabType[] = [
   'ventas',
   'compras',
   'gastos',
+  'presupuesto',
   'cheques',
   'bancos',
   'empleados',
@@ -58,6 +61,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
     { id: 'ventas', label: 'Ventas', icon: TrendingUp },
     { id: 'compras', label: 'Proveedores', icon: Truck },
     { id: 'gastos', label: 'Pagos', icon: Receipt },
+    { id: 'presupuesto', label: 'Presupuesto', icon: Target },
     { id: 'cheques', label: 'Cheques', icon: CheckSquare },
     { id: 'bancos', label: 'Bancos', icon: Building2 },
     { id: 'empleados', label: 'Empleados', icon: Users, isLocked: !isEmployeesUnlocked },
