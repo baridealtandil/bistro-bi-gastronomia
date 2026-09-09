@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { useGastronomy } from '../context/GastronomyContext';
 import {
@@ -10,7 +8,12 @@ import {
   PieChart as PieIcon,
   Calendar,
   Sparkles,
-  ArrowUpRight
+  ArrowUpRight,
+  Users,
+  ShoppingBag,
+  Building2,
+  Landmark,
+  Target
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -31,8 +34,15 @@ interface DashboardViewProps {
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
   const {
     totalSalesNetMonth,
+    totalSalesGrossMonth,
     totalPurchasesMonth,
     totalLaborMonth,
+    totalOperatingExpensesMonth,
+    totalTaxExpensesMonth,
+    laborGrossPercentage,
+    purchasesGrossPercentage,
+    operatingExpensesPercentage,
+    taxExpensesPercentage,
     primeCostPercentage,
     foodCostPercentage,
     laborCostPercentage,
@@ -85,7 +95,185 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         </button>
       </div>
 
+      {/* Sección de Metas Ideales BI (Estructura Financiera) */}
+      <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Target className="w-5 h-5 text-amber-400" />
+              Estructura Financiera - Metas Ideales (BI Gastronómico)
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Monitoreo mensual de los 4 pilares financieros clave comparados contra los estándares óptimos de rentabilidad. Facturación Bruta: <strong className="text-slate-200">${totalSalesGrossMonth.toLocaleString('es-AR')}</strong>
+            </p>
+          </div>
+          <div className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1 rounded-xl text-[11px] font-bold shrink-0 self-start sm:self-auto">
+            Base: % Facturación Bruta
+          </div>
+        </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* KPI 1: % Personal */}
+          {(() => {
+            const val = laborGrossPercentage;
+            let badgeBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+            let statusText = 'En Meta (≤ 20%)';
+            let iconColor = 'text-emerald-400';
+
+            if (val > 24) {
+              badgeBg = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+              statusText = 'Excedido (> 24%)';
+              iconColor = 'text-rose-400';
+            } else if (val > 20) {
+              badgeBg = 'bg-amber-500/10 border-amber-500/30 text-amber-400';
+              statusText = 'Leve Desvío (> 20%)';
+              iconColor = 'text-amber-400';
+            }
+
+            return (
+              <div className="bg-slate-950/70 border border-slate-800/80 p-4 rounded-xl space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-semibold mb-1">
+                    <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-sky-400" /> % Personal</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Ideal: 20%</span>
+                  </div>
+                  <div className={`text-2xl font-black ${iconColor}`}>
+                    {val.toFixed(1)}%
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    ${totalLaborMonth.toLocaleString('es-AR')}
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-800/60">
+                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 rounded-lg text-[10px] font-bold ${badgeBg}`}>
+                    {statusText}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* KPI 2: % Compras de Mercadería */}
+          {(() => {
+            const val = purchasesGrossPercentage;
+            let badgeBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+            let statusText = 'En Meta (≤ 45%)';
+            let iconColor = 'text-emerald-400';
+
+            if (val > 50) {
+              badgeBg = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+              statusText = 'Excedido (> 50%)';
+              iconColor = 'text-rose-400';
+            } else if (val > 45) {
+              badgeBg = 'bg-amber-500/10 border-amber-500/30 text-amber-400';
+              statusText = 'Leve Desvío (> 45%)';
+              iconColor = 'text-amber-400';
+            }
+
+            return (
+              <div className="bg-slate-950/70 border border-slate-800/80 p-4 rounded-xl space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-semibold mb-1">
+                    <span className="flex items-center gap-1.5"><ShoppingBag className="w-4 h-4 text-emerald-400" /> % Compras Mercadería</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Ideal: 45%</span>
+                  </div>
+                  <div className={`text-2xl font-black ${iconColor}`}>
+                    {val.toFixed(1)}%
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    ${totalPurchasesMonth.toLocaleString('es-AR')}
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-800/60">
+                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 rounded-lg text-[10px] font-bold ${badgeBg}`}>
+                    {statusText}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* KPI 3: % Gastos de Funcionamiento */}
+          {(() => {
+            const val = operatingExpensesPercentage;
+            let badgeBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+            let statusText = 'En Meta (≤ 13%)';
+            let iconColor = 'text-emerald-400';
+
+            if (val > 16) {
+              badgeBg = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+              statusText = 'Excedido (> 16%)';
+              iconColor = 'text-rose-400';
+            } else if (val > 13) {
+              badgeBg = 'bg-amber-500/10 border-amber-500/30 text-amber-400';
+              statusText = 'Leve Desvío (> 13%)';
+              iconColor = 'text-amber-400';
+            }
+
+            return (
+              <div className="bg-slate-950/70 border border-slate-800/80 p-4 rounded-xl space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-semibold mb-1">
+                    <span className="flex items-center gap-1.5"><Building2 className="w-4 h-4 text-sky-400" /> % Funcionamiento</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Ideal: 13%</span>
+                  </div>
+                  <div className={`text-2xl font-black ${iconColor}`}>
+                    {val.toFixed(1)}%
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    ${totalOperatingExpensesMonth.toLocaleString('es-AR')}
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-800/60">
+                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 rounded-lg text-[10px] font-bold ${badgeBg}`}>
+                    {statusText}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* KPI 4: % Impuestos */}
+          {(() => {
+            const val = taxExpensesPercentage;
+            let badgeBg = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400';
+            let statusText = 'En Meta (≤ 7%)';
+            let iconColor = 'text-emerald-400';
+
+            if (val > 9) {
+              badgeBg = 'bg-rose-500/10 border-rose-500/30 text-rose-400';
+              statusText = 'Excedido (> 9%)';
+              iconColor = 'text-rose-400';
+            } else if (val > 7) {
+              badgeBg = 'bg-amber-500/10 border-amber-500/30 text-amber-400';
+              statusText = 'Leve Desvío (> 7%)';
+              iconColor = 'text-amber-400';
+            }
+
+            return (
+              <div className="bg-slate-950/70 border border-slate-800/80 p-4 rounded-xl space-y-2 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-semibold mb-1">
+                    <span className="flex items-center gap-1.5"><Landmark className="w-4 h-4 text-purple-400" /> % Impuestos & Tasas</span>
+                    <span className="text-[10px] text-slate-400 font-mono">Ideal: 7%</span>
+                  </div>
+                  <div className={`text-2xl font-black ${iconColor}`}>
+                    {val.toFixed(1)}%
+                  </div>
+                  <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    ${totalTaxExpensesMonth.toLocaleString('es-AR')}
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-slate-800/60">
+                  <span className={`inline-flex items-center gap-1 border px-2 py-0.5 rounded-lg text-[10px] font-bold ${badgeBg}`}>
+                    {statusText}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </div>
 
       {/* Grilla de KPIs principales */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

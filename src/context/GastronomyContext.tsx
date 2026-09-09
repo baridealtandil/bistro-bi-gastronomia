@@ -37,6 +37,53 @@ export function classifyPaymentMethod(pm?: string): 'CAJA' | 'MERCADO_PAGO' | 'B
   return null;
 }
 
+export function classifyExpenseGroup(category: string, group?: string): 'FUNCIONAMIENTO' | 'IMPUESTOS' | 'VARIOS' {
+  if (group === 'FUNCIONAMIENTO' || group === 'IMPUESTOS' || group === 'VARIOS') {
+    return group;
+  }
+  const cat = (category || '').toUpperCase();
+
+  // Impuestos / Tasas / Cargas Sociales / Afip / Arba / IVA / IIBB
+  if (
+    cat.includes('IMPUESTO') ||
+    cat.includes('TASAS') ||
+    cat.includes('AFIP') ||
+    cat.includes('ARBA') ||
+    cat.includes('IIBB') ||
+    cat.includes('IVA') ||
+    cat.includes('MUNICIPAL') ||
+    cat.includes('CARGAS SOCIALES') ||
+    cat.includes('MONOTRIBUTO') ||
+    cat.includes('GANANCIAS') ||
+    cat.includes('DÉBITOS BANCARIOS') ||
+    cat.includes('RETENCION')
+  ) {
+    return 'IMPUESTOS';
+  }
+
+  // Funcionamiento / Operativos
+  if (
+    cat.includes('ALQUILER') ||
+    cat.includes('LUZ') ||
+    cat.includes('GAS') ||
+    cat.includes('AGUA') ||
+    cat.includes('INTERNET') ||
+    cat.includes('SOFTWARE') ||
+    cat.includes('FUDO') ||
+    cat.includes('MANTENIMIENTO') ||
+    cat.includes('MARKETING') ||
+    cat.includes('SEGUROS') ||
+    cat.includes('HONORARIOS') ||
+    cat.includes('LIMPIEZA') ||
+    cat.includes('SERVICIOS') ||
+    cat.includes('FUNCIONAMIENTO')
+  ) {
+    return 'FUNCIONAMIENTO';
+  }
+
+  return 'VARIOS';
+}
+
 const currentMonthKey = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
 interface GastronomyContextType {
@@ -123,6 +170,14 @@ interface GastronomyContextType {
   totalCoversMonth: number;
   averageTicketPerCover: number;
   totalSupplierDebt: number;
+  // Indicadores BI sobre Facturación Bruta (Ideal: Personal 20%, Compras 45%, Funcionamiento 13%, Impuestos 7%)
+  totalSalesGrossMonth: number;
+  totalOperatingExpensesMonth: number;
+  totalTaxExpensesMonth: number;
+  laborGrossPercentage: number;
+  purchasesGrossPercentage: number;
+  operatingExpensesPercentage: number;
+  taxExpensesPercentage: number;
 }
 
 const INITIAL_SALES: Sale[] = [];
@@ -1080,11 +1135,27 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const expensesThisMonth = expenses.filter(e => e.date.startsWith(currentKey));
 
   const totalSalesNetMonth = salesThisMonth.reduce((acc, s) => acc + s.netAmount, 0);
+  const totalSalesGrossMonth = salesThisMonth.reduce((acc, s) => acc + (s.grossAmount || s.netAmount), 0);
   const totalPurchasesMonth = purchasesThisMonth.reduce((acc, p) => acc + p.amount, 0);
   const totalLaborMonth = employees.filter(e => e.active).reduce((acc, e) => acc + e.baseSalary, 0);
   const totalFixedExpensesMonth = expensesThisMonth
     .filter(e => e.type === 'FIJO' || e.type === 'SERVICIO')
     .reduce((acc, e) => acc + e.amount, 0);
+
+  const totalOperatingExpensesMonth = expensesThisMonth
+    .filter(e => classifyExpenseGroup(e.category, e.expenseGroup) === 'FUNCIONAMIENTO')
+    .reduce((acc, e) => acc + e.amount, 0);
+
+  const totalTaxExpensesMonth = expensesThisMonth
+    .filter(e => classifyExpenseGroup(e.category, e.expenseGroup) === 'IMPUESTOS')
+    .reduce((acc, e) => acc + e.amount, 0);
+
+  const grossBaseSales = totalSalesGrossMonth > 0 ? totalSalesGrossMonth : totalSalesNetMonth;
+
+  const laborGrossPercentage = grossBaseSales > 0 ? (totalLaborMonth / grossBaseSales) * 100 : 0;
+  const purchasesGrossPercentage = grossBaseSales > 0 ? (totalPurchasesMonth / grossBaseSales) * 100 : 0;
+  const operatingExpensesPercentage = grossBaseSales > 0 ? (totalOperatingExpensesMonth / grossBaseSales) * 100 : 0;
+  const taxExpensesPercentage = grossBaseSales > 0 ? (totalTaxExpensesMonth / grossBaseSales) * 100 : 0;
 
   const totalCoversMonth = salesThisMonth.reduce((acc, s) => acc + (s.covers || 0), 0);
   const averageTicketPerCover = totalCoversMonth > 0 ? totalSalesNetMonth / totalCoversMonth : 0;
@@ -1328,7 +1399,14 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         pendingServicesAmount,
         totalCoversMonth,
         averageTicketPerCover,
-        totalSupplierDebt
+        totalSupplierDebt,
+        totalSalesGrossMonth,
+        totalOperatingExpensesMonth,
+        totalTaxExpensesMonth,
+        laborGrossPercentage,
+        purchasesGrossPercentage,
+        operatingExpensesPercentage,
+        taxExpensesPercentage
       }}
     >
       {children}

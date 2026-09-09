@@ -66,6 +66,7 @@ export interface Expense {
   id: string;
   date: string;
   category: string;
+  expenseGroup?: 'FUNCIONAMIENTO' | 'IMPUESTOS' | 'VARIOS';
   type?: string;
   description: string;
   amount: number;
