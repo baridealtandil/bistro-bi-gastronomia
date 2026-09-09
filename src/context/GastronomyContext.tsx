@@ -20,7 +20,9 @@ import {
   PartnerConsumption,
   PartnerWithdrawal,
   PartnerWithdrawalShare,
-  PartnerWithdrawalCashLine
+  PartnerWithdrawalCashLine,
+  BudgetItemTarget,
+  MonthlyBudget
 } from '../types/gastronomy';
 
 import importedData from '../data/imported_suppliers_data.json';
@@ -178,6 +180,11 @@ interface GastronomyContextType {
   purchasesGrossPercentage: number;
   operatingExpensesPercentage: number;
   taxExpensesPercentage: number;
+  // Presupuestos & Planificación Financiera
+  budgets: MonthlyBudget[];
+  saveMonthlyBudget: (budget: MonthlyBudget) => void;
+  getBudgetForMonth: (monthKey: string) => MonthlyBudget | undefined;
+  copyPreviousMonthBudget: (currentMonthKey: string) => void;
 }
 
 const INITIAL_SALES: Sale[] = [];
@@ -241,6 +248,7 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [partners, setPartners] = useState<Partner[]>(INITIAL_PARTNERS);
   const [partnerConsumptions, setPartnerConsumptions] = useState<PartnerConsumption[]>(INITIAL_PARTNER_CONSUMPTIONS);
   const [partnerWithdrawals, setPartnerWithdrawals] = useState<PartnerWithdrawal[]>(INITIAL_PARTNER_WITHDRAWALS);
+  const [budgets, setBudgets] = useState<MonthlyBudget[]>([]);
 
   // Registra un movimiento de Caja o MercadoPago. Es el único lugar del código
   // que debe escribir en cashMovements — todas las funciones de venta, pago,
@@ -354,6 +362,9 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const savedPW = localStorage.getItem('gastro_partner_withdrawals');
       if (savedPW) setPartnerWithdrawals(JSON.parse(savedPW));
+
+      const savedBudgets = localStorage.getItem('gastro_budgets');
+      if (savedBudgets) setBudgets(JSON.parse(savedBudgets));
     } catch (e) {
       console.error(e);
     }
@@ -1327,6 +1338,44 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     localStorage.removeItem('gastro_employees_unlocked');
   };
 
+  const saveMonthlyBudget = (budget: MonthlyBudget) => {
+    setBudgets(prev => {
+      const existingIndex = prev.findIndex(b => b.monthKey === budget.monthKey);
+      let updated: MonthlyBudget[];
+      if (existingIndex >= 0) {
+        updated = [...prev];
+        updated[existingIndex] = { ...budget, lastModifiedBy: role, lastModifiedAt: new Date().toISOString() };
+      } else {
+        updated = [{ ...budget, lastModifiedBy: role, lastModifiedAt: new Date().toISOString() }, ...prev];
+      }
+      try { localStorage.setItem('gastro_budgets', JSON.stringify(updated)); } catch (e) {}
+      return updated;
+    });
+  };
+
+  const getBudgetForMonth = (monthKey: string) => {
+    return budgets.find(b => b.monthKey === monthKey);
+  };
+
+  const copyPreviousMonthBudget = (currentMonthKey: string) => {
+    const [yearStr, monthStr] = currentMonthKey.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const prevDate = new Date(year, month - 2, 1);
+    const prevMonthKey = prevDate.toISOString().slice(0, 7);
+
+    const prevBudget = budgets.find(b => b.monthKey === prevMonthKey);
+    if (!prevBudget) return;
+
+    const newBudget: MonthlyBudget = {
+      ...prevBudget,
+      monthKey: currentMonthKey,
+      lastModifiedBy: role,
+      lastModifiedAt: new Date().toISOString()
+    };
+    saveMonthlyBudget(newBudget);
+  };
+
   return (
     <GastronomyContext.Provider
       value={{
@@ -1406,7 +1455,11 @@ export const GastronomyProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         laborGrossPercentage,
         purchasesGrossPercentage,
         operatingExpensesPercentage,
-        taxExpensesPercentage
+        taxExpensesPercentage,
+        budgets,
+        saveMonthlyBudget,
+        getBudgetForMonth,
+        copyPreviousMonthBudget
       }}
     >
       {children}
